@@ -45,17 +45,55 @@ function detectPlatform() {
 
 /**
  * Get computed styles from an element for font matching
+ * Looks for actual text-containing elements to get accurate styles,
+ * since platforms often style child elements rather than containers.
  */
 function captureElementStyles(element) {
   if (!element) return null;
-  const computed = window.getComputedStyle(element);
+
+  // Find the best element to capture styles from
+  // Priority: first styled text-containing child > first span > container
+  let targetElement = element;
+
+  // Look for the first text node and get its parent for accurate styling
+  const walker = document.createTreeWalker(
+    element,
+    NodeFilter.SHOW_TEXT,
+    {
+      acceptNode: (node) => {
+        // Only accept text nodes with actual content
+        return node.textContent.trim().length > 0
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_REJECT;
+      }
+    },
+    false
+  );
+
+  const firstTextNode = walker.nextNode();
+  if (firstTextNode && firstTextNode.parentElement && firstTextNode.parentElement !== element) {
+    // Use the parent of the first text node for more accurate styles
+    targetElement = firstTextNode.parentElement;
+  } else {
+    // Fallback: look for first span or styled element
+    const firstSpan = element.querySelector('span');
+    if (firstSpan) {
+      targetElement = firstSpan;
+    }
+  }
+
+  const computed = window.getComputedStyle(targetElement);
   return {
     fontFamily: computed.fontFamily,
     fontSize: computed.fontSize,
     fontWeight: computed.fontWeight,
     lineHeight: computed.lineHeight,
     color: computed.color,
-    letterSpacing: computed.letterSpacing
+    letterSpacing: computed.letterSpacing,
+    // Additional properties that can affect text appearance
+    textRendering: computed.textRendering,
+    webkitFontSmoothing: computed.webkitFontSmoothing || 'auto',
+    wordSpacing: computed.wordSpacing
   };
 }
 
@@ -149,9 +187,21 @@ function createNeutralizedWrapper(original, neutralized, techniques, severity, o
   wrapper.dataset.neutralized = neutralized.neutralized || neutralized;
 
   // Build inline style string for font matching
+  // Apply all captured styles to ensure visual match with original content
   let contentStyle = '';
   if (originalStyles) {
-    contentStyle = `font-family: ${originalStyles.fontFamily}; font-size: ${originalStyles.fontSize}; font-weight: ${originalStyles.fontWeight}; line-height: ${originalStyles.lineHeight}; color: ${originalStyles.color}; letter-spacing: ${originalStyles.letterSpacing};`;
+    const styles = [
+      `font-family: ${originalStyles.fontFamily}`,
+      `font-size: ${originalStyles.fontSize}`,
+      `font-weight: ${originalStyles.fontWeight}`,
+      `line-height: ${originalStyles.lineHeight}`,
+      `color: ${originalStyles.color}`,
+      `letter-spacing: ${originalStyles.letterSpacing}`,
+      `word-spacing: ${originalStyles.wordSpacing}`,
+      `text-rendering: ${originalStyles.textRendering}`,
+      `-webkit-font-smoothing: ${originalStyles.webkitFontSmoothing}`
+    ];
+    contentStyle = styles.join('; ') + ';';
   }
 
   const persona = FW_SETTINGS.persona;
@@ -357,6 +407,9 @@ async function processElement(element, getText, setText) {
   const text = getText(element);
   if (!shouldProcess(text)) return;
 
+  // Capture original styles BEFORE any modifications for font matching
+  const originalStyles = captureElementStyles(element);
+
   processedElements.add(element);
 
   try {
@@ -367,7 +420,8 @@ async function processElement(element, getText, setText) {
         text,
         result.neutralized,
         result.techniques,
-        result.severity
+        result.severity,
+        originalStyles  // Pass captured styles for font matching
       );
 
       // Replace element content with wrapper

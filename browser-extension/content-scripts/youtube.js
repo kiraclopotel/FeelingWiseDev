@@ -113,6 +113,9 @@
     const text = getElementText(textElement);
     if (!window.FW.shouldProcess(text)) return;
 
+    // Capture original styles BEFORE any modifications for font matching
+    const originalStyles = window.FW.captureElementStyles(textElement);
+
     window.FW.processedElements.add(textElement);
     textElement.classList.add('fw-processing');
 
@@ -126,7 +129,8 @@
           text,
           result.neutralized,
           result.techniques,
-          result.severity
+          result.severity,
+          originalStyles  // Pass captured styles for font matching
         );
 
         textElement.innerHTML = '';
@@ -152,6 +156,9 @@
     const text = getElementText(descElement);
     if (!window.FW.shouldProcess(text)) return;
 
+    // Capture original styles BEFORE any modifications for font matching
+    const originalStyles = window.FW.captureElementStyles(descElement);
+
     window.FW.processedElements.add(descElement);
     descElement.classList.add('fw-processing');
 
@@ -165,7 +172,8 @@
           text,
           result.neutralized,
           result.techniques,
-          result.severity
+          result.severity,
+          originalStyles  // Pass captured styles for font matching
         );
 
         // Prepend wrapper to description

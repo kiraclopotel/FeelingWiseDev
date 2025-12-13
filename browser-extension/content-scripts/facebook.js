@@ -105,6 +105,9 @@
     const text = getPostText(postElement);
     if (!window.FW.shouldProcess(text)) return;
 
+    // Capture original styles BEFORE any modifications for font matching
+    const originalStyles = window.FW.captureElementStyles(textContainer);
+
     // Mark as being processed
     window.FW.processedElements.add(textContainer);
     textContainer.classList.add('fw-processing');
@@ -119,7 +122,8 @@
           text,
           result.neutralized,
           result.techniques,
-          result.severity
+          result.severity,
+          originalStyles  // Pass captured styles for font matching
         );
 
         replacePostContent(textContainer, wrapper);

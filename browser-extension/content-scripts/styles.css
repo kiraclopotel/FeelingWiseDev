@@ -3,15 +3,46 @@
  * Minimal, unobtrusive styling that doesn't interfere with site design
  */
 
-/* Wrapper */
+/* Wrapper - minimal styling to not interfere with native content appearance */
 .fw-neutralized-wrapper {
   position: relative;
   width: 100%;
+  /* Inherit text styling from parent element */
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  font-style: inherit;
+  line-height: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  word-spacing: inherit;
+  text-rendering: inherit;
+  -webkit-font-smoothing: inherit;
+  -moz-osx-font-smoothing: inherit;
 }
 
-/* Content containers */
+/* Content containers - inherit all text styling from parent for seamless integration */
 .fw-content {
   transition: opacity 0.2s ease-in-out;
+  /* Inherit all text-related properties to match native content */
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  font-style: inherit;
+  line-height: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  word-spacing: inherit;
+  text-align: inherit;
+  text-transform: inherit;
+  text-decoration: inherit;
+  text-rendering: inherit;
+  white-space: inherit;
+  word-wrap: inherit;
+  word-break: inherit;
+  overflow-wrap: inherit;
+  -webkit-font-smoothing: inherit;
+  -moz-osx-font-smoothing: inherit;
 }
 
 .fw-hidden {

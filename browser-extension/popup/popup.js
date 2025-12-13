@@ -135,6 +135,16 @@ async function init() {
 
   // Refresh status periodically while popup is open
   setInterval(checkStatus, 5000);
+
+  // Also refresh processed count periodically
+  setInterval(updateProcessedCount, 2000);
 }
+
+// Listen for storage changes to update counter in real-time
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'local' && changes.processedCount) {
+    processedCount.textContent = changes.processedCount.newValue || 0;
+  }
+});
 
 init();

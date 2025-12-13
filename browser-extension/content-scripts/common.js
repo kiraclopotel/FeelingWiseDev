@@ -71,46 +71,66 @@ async function neutralize(content) {
 
 /**
  * Create neutralized content wrapper
+ *
+ * Persona behavior:
+ * - Child: Sees neutralized only, NO badges/indicators (invisible protection)
+ * - Teen: Sees neutralized by default, can toggle to original, sees badges
+ * - Adult: Sees original by default, can toggle to neutralized, sees badges
  */
 function createNeutralizedWrapper(original, neutralized, techniques, severity) {
   const wrapper = document.createElement('div');
   wrapper.className = 'fw-neutralized-wrapper';
   wrapper.dataset.fwProcessed = 'true';
 
-  const showingOriginal = FW_SETTINGS.persona !== 'child';
+  // Store data for analysis panel
+  wrapper.dataset.techniques = JSON.stringify(techniques);
+  wrapper.dataset.severity = severity;
+  wrapper.dataset.original = original;
+  wrapper.dataset.neutralized = neutralized.neutralized || neutralized;
+
+  const persona = FW_SETTINGS.persona;
+  const isChild = persona === 'child';
+  const isAdult = persona === 'adult';
+
+  // Default view: Adult sees original, Teen/Child see neutralized
+  const showNeutralizedFirst = !isAdult;
+
+  // Child mode: NEVER show any indicators - invisible protection
+  const showIndicator = !isChild && FW_SETTINGS.showIndicators;
 
   wrapper.innerHTML = `
-    <div class="fw-content fw-neutralized-content ${!showingOriginal ? 'fw-hidden' : ''}">
+    <div class="fw-content fw-neutralized-content ${!showNeutralizedFirst ? 'fw-hidden' : ''}">
       ${escapeHtml(neutralized.neutralized || neutralized)}
     </div>
-    <div class="fw-content fw-original-content ${showingOriginal ? 'fw-hidden' : ''}">
+    <div class="fw-content fw-original-content ${showNeutralizedFirst ? 'fw-hidden' : ''}">
       ${escapeHtml(original)}
     </div>
-    ${FW_SETTINGS.showIndicators ? `
+    ${showIndicator ? `
       <div class="fw-indicator">
-        <span class="fw-badge fw-severity-${severity >= 7 ? 'high' : severity >= 4 ? 'medium' : 'low'}">
+        <span class="fw-badge fw-severity-${severity >= 7 ? 'high' : severity >= 4 ? 'medium' : 'low'}" role="button" tabindex="0">
           ${getSeverityIcon(severity)} ${techniques.length} technique${techniques.length !== 1 ? 's' : ''}
         </span>
-        ${FW_SETTINGS.persona !== 'child' ? `
-          <button class="fw-toggle-btn" data-showing="neutralized">
-            <span class="fw-toggle-icon">${String.fromCodePoint(0x1F441)}</span>
-            Show Original
-          </button>
-        ` : ''}
-        <div class="fw-tooltip">
-          <strong>Detected techniques:</strong>
-          <ul>
-            ${techniques.map(t => `<li>${escapeHtml(t)}</li>`).join('')}
-          </ul>
-        </div>
+        <button class="fw-toggle-btn" data-showing="${showNeutralizedFirst ? 'neutralized' : 'original'}">
+          <span class="fw-toggle-icon">${showNeutralizedFirst ? String.fromCodePoint(0x1F441) : String.fromCodePoint(0x1F6E1)}</span>
+          ${showNeutralizedFirst ? 'Show Original' : 'Show Neutralized'}
+        </button>
+        <button class="fw-analysis-btn">
+          <span class="fw-analysis-icon">${String.fromCodePoint(0x1F4A1)}</span>
+          ${persona === 'teen' ? 'Why this?' : 'Analyze'}
+        </button>
+      </div>
+      <div class="fw-analysis-panel fw-hidden">
+        <div class="fw-analysis-content"></div>
+        <button class="fw-analysis-close">${String.fromCodePoint(0x2715)} Close</button>
       </div>
     ` : ''}
   `;
 
-  // Add toggle functionality
+  // Add toggle functionality (only for Teen/Adult)
   const toggleBtn = wrapper.querySelector('.fw-toggle-btn');
   if (toggleBtn) {
-    toggleBtn.addEventListener('click', () => {
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
       const neutralizedContent = wrapper.querySelector('.fw-neutralized-content');
       const originalContent = wrapper.querySelector('.fw-original-content');
       const isShowingNeutralized = toggleBtn.dataset.showing === 'neutralized';
@@ -129,7 +149,117 @@ function createNeutralizedWrapper(original, neutralized, techniques, severity) {
     });
   }
 
+  // Add analysis panel functionality (only for Teen/Adult)
+  const analysisBtn = wrapper.querySelector('.fw-analysis-btn');
+  const analysisPanel = wrapper.querySelector('.fw-analysis-panel');
+  const analysisClose = wrapper.querySelector('.fw-analysis-close');
+
+  if (analysisBtn && analysisPanel) {
+    analysisBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const content = wrapper.querySelector('.fw-analysis-content');
+      content.innerHTML = generateAnalysisContent(
+        wrapper.dataset.original,
+        wrapper.dataset.neutralized,
+        JSON.parse(wrapper.dataset.techniques),
+        parseInt(wrapper.dataset.severity),
+        persona
+      );
+      analysisPanel.classList.remove('fw-hidden');
+    });
+
+    if (analysisClose) {
+      analysisClose.addEventListener('click', (e) => {
+        e.stopPropagation();
+        analysisPanel.classList.add('fw-hidden');
+      });
+    }
+  }
+
+  // Badge click also opens analysis
+  const badge = wrapper.querySelector('.fw-badge');
+  if (badge && analysisPanel) {
+    badge.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (analysisBtn) analysisBtn.click();
+    });
+  }
+
   return wrapper;
+}
+
+/**
+ * Generate age-appropriate analysis content
+ */
+function generateAnalysisContent(original, neutralized, techniques, severity, persona) {
+  const techniquesHtml = techniques.map(t => {
+    const name = typeof t === 'string' ? t : t.name || t;
+    return `<li><strong>${escapeHtml(name)}</strong></li>`;
+  }).join('');
+
+  if (persona === 'teen') {
+    // Teen: Friendly mentor voice
+    return `
+      <div class="fw-analysis-teen">
+        <div class="fw-analysis-header">
+          <span class="fw-wise-icon">${String.fromCodePoint(0x1F989)}</span>
+          <strong>Hey, here's what I noticed</strong>
+        </div>
+        <div class="fw-analysis-techniques">
+          <p><strong>Techniques used:</strong></p>
+          <ul>${techniquesHtml}</ul>
+        </div>
+        <div class="fw-analysis-severity">
+          <strong>Manipulation level:</strong> ${severity}/10 ${getSeverityBar(severity)}
+        </div>
+        <div class="fw-analysis-thinking">
+          <p><strong>Think about it:</strong></p>
+          <ul>
+            <li>Why might they use these techniques instead of just stating facts?</li>
+            <li>How does this make you feel vs. what does it make you think?</li>
+            <li>What would a calm version of this look like?</li>
+          </ul>
+        </div>
+        <div class="fw-analysis-neutralized">
+          <p><strong>Calmer version:</strong></p>
+          <blockquote>${escapeHtml(neutralized)}</blockquote>
+        </div>
+      </div>
+    `;
+  } else {
+    // Adult: Professional, concise
+    return `
+      <div class="fw-analysis-adult">
+        <div class="fw-analysis-header">
+          <span class="fw-wise-icon">${String.fromCodePoint(0x1F4A1)}</span>
+          <strong>Analysis</strong>
+        </div>
+        <div class="fw-analysis-row">
+          <span class="fw-label">Detected:</span>
+          <span>${techniques.map(t => typeof t === 'string' ? t : t.name || t).join(' • ')}</span>
+        </div>
+        <div class="fw-analysis-row">
+          <span class="fw-label">Severity:</span>
+          <span>${severity}/10 ${getSeverityBar(severity)}</span>
+        </div>
+        <div class="fw-analysis-neutralized">
+          <span class="fw-label">Neutralized:</span>
+          <blockquote>${escapeHtml(neutralized)}</blockquote>
+        </div>
+        <p class="fw-analysis-note">Your call. Toggle above to switch views.</p>
+      </div>
+    `;
+  }
+}
+
+/**
+ * Generate severity bar visualization
+ */
+function getSeverityBar(severity) {
+  const filled = Math.round(severity);
+  const empty = 10 - filled;
+  const color = severity >= 7 ? '#dc2626' : severity >= 4 ? '#ea580c' : '#16a34a';
+  return `<span class="fw-severity-bar" style="color: ${color}">${'▮'.repeat(filled)}${'▯'.repeat(empty)}</span>`;
 }
 
 /**

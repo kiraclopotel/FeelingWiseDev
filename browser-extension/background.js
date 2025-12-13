@@ -100,24 +100,36 @@ async function neutralizeContent(content, persona = 'adult') {
     return { ...cached, fromCache: true };
   }
 
-  const systemPrompt = `You are a content neutralization assistant. Your job is to rewrite text to remove emotional manipulation while preserving the original meaning, viewpoint, and VOICE.
+  const systemPrompt = `You are a content neutralizer. Transform emotionally manipulative content into calm, honest communication while preserving the original viewpoint and claims.
 
-RULES:
-1. Convert ALL CAPS to normal case
-2. Reduce multiple !!! or ??? to single punctuation
-3. Remove alarm emojis (${String.fromCodePoint(0x1F6A8)}${String.fromCodePoint(0x1F525)}${String.fromCodePoint(0x26A0)}${String.fromCodePoint(0xFE0F)}) but keep semantic emojis
-4. Replace fear/urgency language with neutral alternatives
-5. Preserve all factual claims, names, dates, numbers
-6. PRESERVE THE ORIGINAL VOICE - if they wrote in first person, keep first person
-7. NEVER add third-person framing like "The author argues..." or "This person believes..."
-8. NEVER judge whether claims are true or false
-9. Keep the same viewpoint direction (if they're against something, stay against it)
-10. The output should sound like THE SAME PERSON, just calmer
+CRITICAL RULES:
+1. PRESERVE first-person voice - "I believe X" stays "I believe X" (calmer)
+2. PRESERVE the viewpoint direction (what side they're on)
+3. PRESERVE the core claim (what they're actually saying)
+4. PRESERVE all factual information (names, dates, numbers)
+5. REMOVE emotional assault (shame attacks, fear triggers, anger bait)
+6. REMOVE false certainty ("CURES" becomes "may help", "DESTROYS" becomes "may harm")
+7. REMOVE manipulative formatting (ALL CAPS to normal, !!! to .)
+8. REMOVE alarm emojis (${String.fromCodePoint(0x1F6A8)}${String.fromCodePoint(0x1F525)}${String.fromCodePoint(0x26A0)}${String.fromCodePoint(0xFE0F)}) but keep semantic emojis
+9. NEVER add third-person framing like "The author argues..."
+10. Output should sound like THE SAME PERSON, just calmer
+
+DETECT THESE 10 MANIPULATION TECHNIQUES:
+- Fear Appeal: Triggers threat response ("DESTROY", "DANGER", "your children at risk")
+- Anger/Outrage: Triggers rage ("DISGUSTING", "How DARE they")
+- Shame/Guilt Attack: Attacks identity ("REAL mothers don't...", "only an IDIOT")
+- False Urgency: Artificial time pressure ("ACT NOW", "last chance")
+- False Certainty: Speculation as fact ("CURES", "PROVEN", "100%")
+- Scapegoating: Blames a group ("THEY are destroying...")
+- Bandwagon Pressure: False consensus ("Everyone knows...")
+- FOMO: Fear of missing out ("While you're sleeping...")
+- Toxic Positivity: Dismisses concerns ("Just be happy!")
+- Misleading Formatting: Visual manipulation (ALL CAPS, !!!, alarm emojis)
 
 Respond with JSON only:
 {
-  "neutralized": "the neutralized text",
-  "techniques": ["list of manipulation techniques detected"],
+  "neutralized": "the neutralized text preserving first-person voice",
+  "techniques": ["exact technique names from the list above"],
   "severity": 0-10
 }`;
 
@@ -190,7 +202,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'NEUTRALIZE') {
     getSettings().then(settings => {
       neutralizeContent(message.content, settings.persona)
-        .then(result => sendResponse({ success: true, ...result }))
+        .then(async result => {
+          // Increment processed count on successful neutralization with techniques found
+          if (result.techniques && result.techniques.length > 0) {
+            const stored = await chrome.storage.local.get('processedCount');
+            const newCount = (stored.processedCount || 0) + 1;
+            await chrome.storage.local.set({ processedCount: newCount });
+          }
+          sendResponse({ success: true, ...result });
+        })
         .catch(error => sendResponse({ success: false, error: error.message }));
     });
     return true; // Async response

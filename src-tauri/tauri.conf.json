@@ -5,7 +5,7 @@
   "identifier": "com.feelingwise.app",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:3000",
+    "devUrl": "http://localhost:5173",
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
   },
@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "FeelingWise - Content Neutralization",
-        "width": 1400,
-        "height": 900,
+        "width": 1200,
+        "height": 800,
         "minWidth": 800,
         "minHeight": 600,
         "resizable": true,
@@ -28,16 +28,28 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["msi", "nsis"],
     "category": "Utility",
+    "publisher": "FeelingWise",
+    "copyright": "Copyright 2025 FeelingWise",
     "shortDescription": "Content neutralization that removes emotional manipulation",
-    "longDescription": "FeelingWise is a content neutralization tool that removes emotional manipulation from social media content while preserving the original message, viewpoint, and factual claims.",
+    "longDescription": "FeelingWise is a content neutralization tool that uses local AI to remove emotional manipulation from social media content while preserving the original message, viewpoint, and factual claims. All processing happens on your device - your content never leaves your computer.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "windows": {
+      "digestAlgorithm": "sha256",
+      "wix": null,
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "headerImage": null,
+        "sidebarImage": null,
+        "installMode": "currentUser"
+      }
+    }
   }
 }

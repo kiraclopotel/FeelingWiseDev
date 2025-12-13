@@ -12,6 +12,53 @@ let FW_SETTINGS = {
   showIndicators: true
 };
 
+// Platform-specific style configurations
+const PLATFORM_STYLES = {
+  twitter: {
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+    fontSize: '15px',
+    lineHeight: '20px'
+  },
+  tiktok: {
+    fontFamily: 'TikTokFont, Arial, sans-serif',
+    fontSize: '16px',
+    lineHeight: '22px'
+  },
+  facebook: {
+    fontFamily: 'Helvetica, Arial, sans-serif',
+    fontSize: '14px',
+    lineHeight: '19px'
+  }
+};
+
+/**
+ * Detect current platform based on hostname
+ */
+function detectPlatform() {
+  const hostname = window.location.hostname;
+  if (hostname.includes('twitter') || hostname.includes('x.com')) return 'twitter';
+  if (hostname.includes('tiktok')) return 'tiktok';
+  if (hostname.includes('facebook') || hostname.includes('fb.com')) return 'facebook';
+  if (hostname.includes('youtube')) return 'youtube';
+  return 'twitter'; // default
+}
+
+/**
+ * Get computed styles from an element for font matching
+ */
+function captureElementStyles(element) {
+  if (!element) return null;
+  const computed = window.getComputedStyle(element);
+  return {
+    fontFamily: computed.fontFamily,
+    fontSize: computed.fontSize,
+    fontWeight: computed.fontWeight,
+    lineHeight: computed.lineHeight,
+    color: computed.color,
+    letterSpacing: computed.letterSpacing
+  };
+}
+
 // Load settings on init
 chrome.runtime.sendMessage({ type: 'GET_SETTINGS' }, response => {
   if (response) {
@@ -76,17 +123,36 @@ async function neutralize(content) {
  * - Child: Sees neutralized only, NO badges/indicators (invisible protection)
  * - Teen: Sees neutralized by default, can toggle to original, sees badges
  * - Adult: Sees original by default, can toggle to neutralized, sees badges
+ *
+ * @param {string} original - Original text content
+ * @param {string|object} neutralized - Neutralized text or object with neutralized property
+ * @param {array} techniques - Detected manipulation techniques
+ * @param {number} severity - Severity score (0-10)
+ * @param {object} originalStyles - Optional computed styles from the original element
  */
-function createNeutralizedWrapper(original, neutralized, techniques, severity) {
+function createNeutralizedWrapper(original, neutralized, techniques, severity, originalStyles = null) {
   const wrapper = document.createElement('div');
   wrapper.className = 'fw-neutralized-wrapper';
   wrapper.dataset.fwProcessed = 'true';
 
+  // Ensure severity is a valid number (fix NaN bug)
+  const safeSeverity = (typeof severity === 'string' ? parseInt(severity, 10) : severity) || 0;
+  const validSeverity = isNaN(safeSeverity) ? 0 : Math.max(0, Math.min(10, safeSeverity));
+
+  // Ensure techniques is a valid array
+  const safeTechniques = Array.isArray(techniques) ? techniques : [];
+
   // Store data for analysis panel
-  wrapper.dataset.techniques = JSON.stringify(techniques);
-  wrapper.dataset.severity = severity;
+  wrapper.dataset.techniques = JSON.stringify(safeTechniques);
+  wrapper.dataset.severity = validSeverity;
   wrapper.dataset.original = original;
   wrapper.dataset.neutralized = neutralized.neutralized || neutralized;
+
+  // Build inline style string for font matching
+  let contentStyle = '';
+  if (originalStyles) {
+    contentStyle = `font-family: ${originalStyles.fontFamily}; font-size: ${originalStyles.fontSize}; font-weight: ${originalStyles.fontWeight}; line-height: ${originalStyles.lineHeight}; color: ${originalStyles.color}; letter-spacing: ${originalStyles.letterSpacing};`;
+  }
 
   const persona = FW_SETTINGS.persona;
   const isChild = persona === 'child';
@@ -99,16 +165,16 @@ function createNeutralizedWrapper(original, neutralized, techniques, severity) {
   const showIndicator = !isChild && FW_SETTINGS.showIndicators;
 
   wrapper.innerHTML = `
-    <div class="fw-content fw-neutralized-content ${!showNeutralizedFirst ? 'fw-hidden' : ''}">
+    <div class="fw-content fw-neutralized-content ${!showNeutralizedFirst ? 'fw-hidden' : ''}"${contentStyle ? ` style="${contentStyle}"` : ''}>
       ${escapeHtml(neutralized.neutralized || neutralized)}
     </div>
-    <div class="fw-content fw-original-content ${showNeutralizedFirst ? 'fw-hidden' : ''}">
+    <div class="fw-content fw-original-content ${showNeutralizedFirst ? 'fw-hidden' : ''}"${contentStyle ? ` style="${contentStyle}"` : ''}>
       ${escapeHtml(original)}
     </div>
     ${showIndicator ? `
       <div class="fw-indicator">
-        <span class="fw-badge fw-severity-${severity >= 7 ? 'high' : severity >= 4 ? 'medium' : 'low'}" role="button" tabindex="0">
-          ${getSeverityIcon(severity)} ${techniques.length} technique${techniques.length !== 1 ? 's' : ''}
+        <span class="fw-badge fw-severity-${validSeverity >= 7 ? 'high' : validSeverity >= 4 ? 'medium' : 'low'}" role="button" tabindex="0">
+          ${getSeverityIcon(validSeverity)} ${safeTechniques.length} technique${safeTechniques.length !== 1 ? 's' : ''}
         </span>
         <button class="fw-toggle-btn" data-showing="${showNeutralizedFirst ? 'neutralized' : 'original'}">
           <span class="fw-toggle-icon">${showNeutralizedFirst ? String.fromCodePoint(0x1F441) : String.fromCodePoint(0x1F6E1)}</span>
@@ -346,5 +412,8 @@ window.FW = {
   processElement,
   createObserver,
   createNeutralizedWrapper,
-  processedElements
+  processedElements,
+  captureElementStyles,
+  detectPlatform,
+  PLATFORM_STYLES
 };

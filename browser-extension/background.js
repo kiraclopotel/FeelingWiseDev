@@ -167,6 +167,25 @@ Respond with JSON only:
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         result = JSON.parse(jsonMatch[0]);
+
+        // Ensure severity is a valid number (fix NaN bug)
+        // Ollama may return severity as string, undefined, or invalid
+        let parsedSeverity = typeof result.severity === 'string'
+          ? parseInt(result.severity, 10)
+          : result.severity;
+        result.severity = isNaN(parsedSeverity) || parsedSeverity === null || parsedSeverity === undefined
+          ? 0
+          : Math.max(0, Math.min(10, Math.round(parsedSeverity)));
+
+        // Ensure techniques is a valid array
+        if (!Array.isArray(result.techniques)) {
+          result.techniques = result.techniques ? [result.techniques] : [];
+        }
+
+        // Ensure neutralized exists
+        if (!result.neutralized) {
+          result.neutralized = content;
+        }
       } else {
         throw new Error('No JSON found in response');
       }

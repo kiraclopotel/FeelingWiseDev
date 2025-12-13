@@ -1,53 +1,35 @@
+/**
+ * types.ts
+ *
+ * Type definitions for FeelingWise application.
+ */
+
+// ============================================================================
+// CORE TYPES
+// ============================================================================
 
 export type AgeGroup = 'child' | 'teenager' | 'adult';
 
 export type Platform = 'twitter' | 'tiktok' | 'instagram' | 'facebook' | 'youtube';
 
-export type PostCategory = 
-  | 'Health Misinformation' 
-  | 'Body Image' 
-  | 'Political Division' 
-  | 'Financial Scams' 
-  | 'Parenting Shame' 
-  | 'Mental Health' 
+export type PostCategory =
+  | 'Health Misinformation'
+  | 'Body Image'
+  | 'Political Division'
+  | 'Financial Scams'
+  | 'Parenting Shame'
+  | 'Mental Health'
   | 'Conspiracy'
   | 'Clean Content';
 
-export interface Comment {
-  id: string;
-  author: string;
-  original: string;
-  neutralized: string;
-  techniques: string[];
+// ============================================================================
+// ANALYSIS TYPES
+// ============================================================================
+
+export interface Technique {
+  name: string;
   severity: number;
-}
-
-export interface Post {
-  id: string | number;
-  platform: Platform;
-  category: PostCategory;
-  original: string;
-  neutralized: string;
-  techniques: string[];
-  severity: number; // 0-10
-  author: string;
-  handle?: string; // For twitter/insta
-  timestamp: string;
-  verified?: boolean; // New field for verification badge
-  
-  // Engagement Metrics (strings to allow "1.2K")
-  likes: string;
-  comments: string;
-  shares: string;
-  views?: string;
-  
-  // Visuals
-  hasMedia?: boolean;
-  mediaType?: 'image' | 'video';
-  mediaColor?: string; // For placeholder visuals
-
-  // Comment Thread
-  commentThread: Comment[];
+  explanation: string;
 }
 
 export interface TechniqueAnalysis {
@@ -60,46 +42,42 @@ export interface AnalysisResult {
   neutralized: string;
   severity: number;
   techniques: TechniqueAnalysis[];
-  psychology: string; // "Why it works" / "How it tricks you"
-  pattern: string; // "Pattern Recognition" / "The Pattern"
-  questions: string[]; // "Think about it"
+  psychology: string;
+  pattern: string;
+  questions: string[];
 }
+
+export interface AnalysisHistoryItem {
+  id: string;
+  original: string;
+  neutralized: string;
+  techniques: string[];
+  severity: number;
+  createdAt: number;
+  persona: AgeGroup;
+}
+
+// ============================================================================
+// PERSONA TYPES
+// ============================================================================
 
 export interface Persona {
   id: AgeGroup;
   name: string;
   label: string;
-  icon: any; // React component
+  icon: any; // React component (LucideIcon)
   description: string;
 }
 
-// --- NEW SCAM SIMULATION TYPES ---
-
-export interface Message {
-  id: number;
-  sender: 'scammer' | 'user';
-  text: string;
-  delay: number; // ms to wait before showing
+export interface PersonaConfig {
+  showOriginal: boolean;
+  showAnalysis: boolean;
+  defaultView: 'original' | 'neutralized';
 }
 
-export interface ScamAnalysisState {
-  probability: number; // 0-100
-  flags: string[];
-  technique: string;
-  recommendation: string;
-  explanation: string;
-}
-
-export interface ScamScenario {
-  id: string;
-  title: string;
-  contactName: string;
-  icon: any; // React component
-  messages: Message[];
-  finalAnalysis: ScamAnalysisState;
-}
-
-// --- GAMIFICATION TYPES ---
+// ============================================================================
+// GAMIFICATION TYPES
+// ============================================================================
 
 export type Rarity = 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary';
 
@@ -110,8 +88,8 @@ export interface GuardianStats {
 }
 
 export interface GuardianCard {
-  id: string; // Unique #
-  title: string; // Adj + Noun
+  id: string;
+  title: string;
   rarity: Rarity;
   stats: GuardianStats;
   level: number;
@@ -122,7 +100,7 @@ export interface QuizQuestion {
   id: number;
   question: string;
   options: string[];
-  correctIndex: number; // 0-3
+  correctIndex: number;
   explanation: string;
 }
 
@@ -132,4 +110,37 @@ export interface UserProgress {
   currentCard: GuardianCard;
   collection: GuardianCard[];
   quizCompletedToday: boolean;
+}
+
+// ============================================================================
+// APP STATE TYPES
+// ============================================================================
+
+export type AppTab = 'analyze' | 'stats' | 'cards' | 'settings';
+
+export interface AppSettings {
+  persona: AgeGroup;
+  useLocalAI: boolean;
+  selectedModel: string | null;
+  textSize: 'normal' | 'large';
+  highContrast: boolean;
+}
+
+// ============================================================================
+// STATISTICS TYPES
+// ============================================================================
+
+export interface AnalysisStats {
+  totalAnalyses: number;
+  techniqueFrequency: Record<string, number>;
+  averageSeverity: number;
+  lastAnalysisTime: number | null;
+  cacheHitRate: number;
+}
+
+export interface CacheStats {
+  totalEntries: number;
+  cacheHits: number;
+  cacheMisses: number;
+  hitRate: number;
 }

@@ -5,39 +5,55 @@
   "identifier": "com.feelingwise.app",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:3000",
+    "devUrl": "http://localhost:5173",
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
   },
   "app": {
     "windows": [
       {
-        "title": "FeelingWise - Content Neutralization",
-        "width": 1400,
-        "height": 900,
+        "title": "FeelingWise - Content Neutralizer",
+        "width": 1200,
+        "height": 800,
         "minWidth": 800,
         "minHeight": 600,
         "resizable": true,
         "fullscreen": false,
-        "center": true
+        "center": true,
+        "decorations": true,
+        "transparent": false
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' http://localhost:* http://127.0.0.1:*; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+      "csp": "default-src 'self'; connect-src 'self' http://localhost:* http://127.0.0.1:*; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
     }
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["msi", "nsis"],
     "category": "Utility",
-    "shortDescription": "Content neutralization that removes emotional manipulation",
-    "longDescription": "FeelingWise is a content neutralization tool that removes emotional manipulation from social media content while preserving the original message, viewpoint, and factual claims.",
+    "copyright": "2025 FeelingWise",
+    "shortDescription": "Local AI content neutralization",
+    "longDescription": "FeelingWise is a privacy-first content neutralization tool that uses local AI to remove emotional manipulation from social media content while preserving the original message and factual claims. All processing happens on your device - your data never leaves your computer.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "publisher": "FeelingWise",
+    "windows": {
+      "certificateThumbprint": null,
+      "timestampUrl": null,
+      "wix": {
+        "language": "en-US"
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["English"],
+        "displayLanguageSelector": false
+      }
+    }
   }
 }

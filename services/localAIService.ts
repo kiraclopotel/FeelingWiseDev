@@ -96,6 +96,31 @@ export async function checkOllamaInstalled(): Promise<boolean> {
   return await invoke<boolean>('check_ollama_installed');
 }
 
+/**
+ * Check if Ollama is running and healthy (can respond to requests)
+ */
+export async function checkOllamaHealth(): Promise<boolean> {
+  if (!isTauri()) {
+    // In browser mode, try direct HTTP check
+    try {
+      const response = await fetch('http://localhost:11434/api/tags', {
+        method: 'GET',
+        signal: AbortSignal.timeout(2000),
+      });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  try {
+    const status = await getOllamaStatus();
+    return status.running;
+  } catch {
+    return false;
+  }
+}
+
 export async function getOllamaStatus(): Promise<OllamaStatus> {
   if (!isTauri()) {
     return { running: false, models_available: [], current_model: null };

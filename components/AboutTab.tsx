@@ -123,7 +123,7 @@ export const AboutTab: React.FC = () => {
         {/* FOOTER */}
         <div className="border-t border-white/10 pt-12 text-center">
            <div className="inline-block px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs text-zinc-500 font-mono">
-             Google DeepMind Hackathon • Dec 2025
+             FeelingWise v1.0.0 • Local AI Content Neutralization
            </div>
         </div>
 

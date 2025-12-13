@@ -72,6 +72,9 @@
     const text = getTweetText(textElement);
     if (!window.FW.shouldProcess(text)) return;
 
+    // Capture original styles BEFORE any modifications for font matching
+    const originalStyles = window.FW.captureElementStyles(textElement);
+
     // Mark as being processed
     window.FW.processedElements.add(textElement);
     textElement.classList.add('fw-processing');
@@ -86,7 +89,8 @@
           text,
           result.neutralized,
           result.techniques,
-          result.severity
+          result.severity,
+          originalStyles  // Pass captured styles for font matching
         );
 
         replaceTweetContent(textElement, wrapper);

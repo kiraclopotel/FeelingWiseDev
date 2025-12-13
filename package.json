@@ -1,21 +1,27 @@
 {
   "name": "feelingwise",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
   },
   "dependencies": {
-    "lucide-react": "^0.556.0",
-    "recharts": "^3.5.1",
-    "react-dom": "^19.2.1",
     "@google/genai": "^1.32.0",
-    "react": "^19.2.1"
+    "@tauri-apps/api": "^2.9.1",
+    "@tauri-apps/plugin-shell": "^2.3.3",
+    "lucide-react": "^0.556.0",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "recharts": "^3.5.1"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.9.6",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",

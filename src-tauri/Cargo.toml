@@ -1,0 +1,57 @@
+[package]
+name = "feelingwise"
+version = "1.0.0"
+description = "FeelingWise - Content Neutralization Desktop App"
+authors = ["FeelingWise Team"]
+license = "MIT"
+repository = "https://github.com/feelingwise/feelingwise"
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.5.3", features = [] }
+
+[dependencies]
+# Tauri core
+tauri = { version = "2.9.5", features = [] }
+tauri-plugin-log = "2"
+tauri-plugin-shell = "2"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# HTTP client for Ollama API
+reqwest = { version = "0.12", features = ["json", "stream"] }
+
+# System info for hardware detection
+sysinfo = "0.32"
+
+# SQLite for caching
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# Hashing for cache keys
+sha2 = "0.10"
+hex = "0.4"
+
+# Logging
+log = "0.4"
+
+# Async traits
+async-trait = "0.1"
+
+# UUID for unique IDs
+uuid = { version = "1.0", features = ["v4"] }
+
+# Directories for app data paths
+directories = "5.0"
+
+# Futures utilities for async streams
+futures-util = "0.3"

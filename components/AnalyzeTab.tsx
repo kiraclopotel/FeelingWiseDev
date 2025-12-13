@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { analyzeTextWithLocalAI, isTauri, getOllamaStatus } from '../services/localAIService';
 import { analyzeTextWithGemini } from '../services/geminiService';
 import { AnalysisResult, AgeGroup } from '../types';
 import { AGE_GROUPS } from '../constants';
-import { 
-  Sparkles, Loader2, ChevronRight, ChevronDown, 
+import {
+  Sparkles, Loader2, ChevronRight, ChevronDown,
   Brain, Search, HelpCircle, AlertTriangle, Shield,
-  Eye, EyeOff
+  Eye, EyeOff, Cpu, Cloud
 } from 'lucide-react';
 import { ANALYSIS_EXAMPLES } from '../constants';
 
@@ -14,17 +15,48 @@ export const AnalyzeTab: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [selectedAge, setSelectedAge] = useState<AgeGroup>('child');
+  const [useLocalAI, setUseLocalAI] = useState(false);
+  const [localAIAvailable, setLocalAIAvailable] = useState(false);
+
+  // Check if local AI is available on mount
+  useEffect(() => {
+    async function checkLocalAI() {
+      if (isTauri()) {
+        try {
+          const status = await getOllamaStatus();
+          const available = status.running && status.models_available.length > 0;
+          setLocalAIAvailable(available);
+          setUseLocalAI(available); // Default to local AI if available
+        } catch {
+          setLocalAIAvailable(false);
+        }
+      }
+    }
+    checkLocalAI();
+  }, []);
 
   const handleAnalyze = async () => {
     if (!inputText.trim()) return;
-    
+
     setIsLoading(true);
     setResult(null);
     try {
-      const data = await analyzeTextWithGemini(inputText, selectedAge);
+      // Use local AI if available and enabled, otherwise fall back to Gemini
+      const data = useLocalAI && localAIAvailable
+        ? await analyzeTextWithLocalAI(inputText, selectedAge)
+        : await analyzeTextWithGemini(inputText, selectedAge);
       setResult(data);
     } catch (e) {
       console.error(e);
+      // If local AI fails, try Gemini as fallback
+      if (useLocalAI) {
+        try {
+          const data = await analyzeTextWithGemini(inputText, selectedAge);
+          setResult(data);
+        } catch (e2) {
+          console.error('Fallback also failed:', e2);
+        }
+      }
     } finally {
       setIsLoading(false);
     }
@@ -47,7 +79,9 @@ export const AnalyzeTab: React.FC = () => {
                  const reAnalyze = async () => {
                    setIsLoading(true);
                    try {
-                     const data = await analyzeTextWithGemini(inputText, group.id);
+                     const data = useLocalAI && localAIAvailable
+                       ? await analyzeTextWithLocalAI(inputText, group.id)
+                       : await analyzeTextWithGemini(inputText, group.id);
                      setResult(data);
                    } finally {
                      setIsLoading(false);
@@ -58,8 +92,8 @@ export const AnalyzeTab: React.FC = () => {
             }
           }}
           className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
-            selectedAge === group.id 
-              ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-500/20' 
+            selectedAge === group.id
+              ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-500/20'
               : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-zinc-200'
           }`}
         >
@@ -94,7 +128,22 @@ export const AnalyzeTab: React.FC = () => {
         </div>
         
         <div className="bg-zinc-900 px-4 py-3 border-t border-zinc-800 flex justify-between items-center">
-           <span className="text-xs text-zinc-500 font-medium hidden sm:inline-block">Powered by Gemini 2.5 Flash</span>
+           <div className="hidden sm:flex items-center gap-2">
+             {localAIAvailable && (
+               <button
+                 onClick={() => setUseLocalAI(!useLocalAI)}
+                 className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                   useLocalAI ? 'bg-emerald-500/20 text-emerald-400' : 'bg-zinc-800 text-zinc-500'
+                 }`}
+               >
+                 {useLocalAI ? <Cpu size={12} /> : <Cloud size={12} />}
+                 {useLocalAI ? 'Local AI' : 'Cloud'}
+               </button>
+             )}
+             <span className="text-xs text-zinc-500 font-medium">
+               {useLocalAI && localAIAvailable ? 'Powered by Ollama (Local)' : 'Powered by Gemini'}
+             </span>
+           </div>
            <button
             onClick={handleAnalyze}
             disabled={isLoading || !inputText.trim()}

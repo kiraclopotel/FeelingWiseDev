@@ -142,6 +142,98 @@ export async function pullModel(modelName: string): Promise<void> {
 }
 
 // ============================================================================
+// NEW: Friendly Status & Setup APIs
+// ============================================================================
+
+export interface FriendlyStatus {
+  status: 'starting' | 'running' | 'not_installed' | 'model_missing' | 'error' | 'stopped';
+  message: string;
+  download_url?: string;
+}
+
+export interface SetupStatus {
+  ollama_installed: boolean;
+  ollama_running: boolean;
+  model_available: boolean;
+  first_run_complete: boolean;
+}
+
+export interface AppSettings {
+  language: string;
+  start_on_login: boolean;
+  minimize_to_tray: boolean;
+  first_run_complete: boolean;
+  selected_model: string;
+  persona: string;
+}
+
+export async function getFriendlyStatus(): Promise<FriendlyStatus> {
+  if (!isTauri()) {
+    return { status: 'stopped', message: 'Desktop app required' };
+  }
+  return await invoke<FriendlyStatus>('get_friendly_status');
+}
+
+export async function getSetupStatus(): Promise<SetupStatus> {
+  if (!isTauri()) {
+    return {
+      ollama_installed: false,
+      ollama_running: false,
+      model_available: false,
+      first_run_complete: false,
+    };
+  }
+  return await invoke<SetupStatus>('get_setup_status');
+}
+
+export async function getAppSettings(): Promise<AppSettings> {
+  if (!isTauri()) {
+    return {
+      language: 'en',
+      start_on_login: true,
+      minimize_to_tray: true,
+      first_run_complete: false,
+      selected_model: 'phi3:mini',
+      persona: 'adult',
+    };
+  }
+  return await invoke<AppSettings>('get_settings');
+}
+
+export async function saveAppSettings(settings: AppSettings): Promise<void> {
+  if (!isTauri()) return;
+  return await invoke('save_settings', { newSettings: settings });
+}
+
+export async function completeFirstRun(): Promise<void> {
+  if (!isTauri()) return;
+  return await invoke('complete_first_run');
+}
+
+export async function openOllamaDownload(): Promise<void> {
+  if (!isTauri()) {
+    window.open('https://ollama.ai/download', '_blank');
+    return;
+  }
+  return await invoke('open_ollama_download');
+}
+
+export async function openExtensionStore(): Promise<void> {
+  if (!isTauri()) {
+    window.open('https://chrome.google.com/webstore', '_blank');
+    return;
+  }
+  return await invoke('open_extension_store');
+}
+
+export async function restartOllama(): Promise<void> {
+  if (!isTauri()) {
+    throw new Error('Ollama management requires desktop app');
+  }
+  return await invoke('restart_ollama');
+}
+
+// ============================================================================
 // NEUTRALIZATION
 // ============================================================================
 

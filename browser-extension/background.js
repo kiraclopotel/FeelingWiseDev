@@ -2,14 +2,25 @@
  * FeelingWise Browser Extension - Background Service Worker
  *
  * Handles communication between content scripts and the local Ollama server.
+ * Auto-discovers the Tauri app via the extension bridge.
  * Implements caching to avoid redundant AI calls.
  */
 
 // Import severity scoring module (single source of truth)
 importScripts('content-scripts/severity.js');
 
-const OLLAMA_BASE_URL = 'http://localhost:11434';
+// Tauri app bridge for auto-discovery
+const TAURI_BRIDGE_URL = 'http://127.0.0.1:19542';
+const OLLAMA_BASE_URL = 'http://127.0.0.1:11434';
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+// Track app status
+let appStatus = {
+  tauriRunning: false,
+  ollamaReady: false,
+  needsSetup: false,
+  lastCheck: 0
+};
 
 // In-memory cache for neutralizations
 const cache = new Map();
@@ -36,8 +47,73 @@ async function saveSettings(settings) {
   await chrome.storage.sync.set({ settings: { ...DEFAULT_SETTINGS, ...settings } });
 }
 
-// Check if Ollama is running
+// Check if Tauri app is running via bridge
+async function checkTauriApp() {
+  try {
+    const response = await fetch(`${TAURI_BRIDGE_URL}/status`, {
+      method: 'GET',
+      signal: AbortSignal.timeout(2000)
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      appStatus = {
+        tauriRunning: data.app_running,
+        ollamaReady: data.ollama_ready,
+        needsSetup: data.needs_setup,
+        lastCheck: Date.now()
+      };
+      return {
+        running: true,
+        ollamaReady: data.ollama_ready,
+        needsSetup: data.needs_setup,
+        status: data.status
+      };
+    }
+  } catch (e) {
+    appStatus = {
+      tauriRunning: false,
+      ollamaReady: false,
+      needsSetup: true,
+      lastCheck: Date.now()
+    };
+  }
+  return { running: false, ollamaReady: false, needsSetup: true };
+}
+
+// Check if Ollama is running (via Tauri app first, then direct)
 async function checkOllamaStatus() {
+  // First check if Tauri app is running
+  const tauriStatus = await checkTauriApp();
+
+  if (!tauriStatus.running) {
+    // Tauri app not running - return friendly status
+    return {
+      running: false,
+      models: [],
+      appNotRunning: true,
+      friendlyMessage: 'Please start the FeelingWise app'
+    };
+  }
+
+  if (tauriStatus.needsSetup) {
+    return {
+      running: false,
+      models: [],
+      needsSetup: true,
+      friendlyMessage: 'Please complete setup in the FeelingWise app'
+    };
+  }
+
+  if (!tauriStatus.ollamaReady) {
+    return {
+      running: false,
+      models: [],
+      friendlyMessage: tauriStatus.status || 'Starting up...'
+    };
+  }
+
+  // Tauri app is running and Ollama is ready - get model list
   try {
     const response = await fetch(`${OLLAMA_BASE_URL}/api/tags`, {
       method: 'GET',
@@ -45,7 +121,7 @@ async function checkOllamaStatus() {
     });
 
     if (!response.ok) {
-      return { running: false, models: [] };
+      return { running: false, models: [], friendlyMessage: 'Connection issue' };
     }
 
     const data = await response.json();
@@ -53,10 +129,15 @@ async function checkOllamaStatus() {
 
     return {
       running: true,
-      models
+      models,
+      friendlyMessage: 'Protected'
     };
   } catch (error) {
-    return { running: false, models: [], error: error.message };
+    return {
+      running: false,
+      models: [],
+      friendlyMessage: 'Connection issue'
+    };
   }
 }
 
@@ -265,10 +346,20 @@ async function updateBadge() {
     chrome.action.setBadgeText({ text: 'OFF' });
     chrome.action.setBadgeBackgroundColor({ color: '#6b7280' });
   } else if (status.running) {
+    // All good - no badge needed
     chrome.action.setBadgeText({ text: '' });
+  } else if (status.appNotRunning) {
+    // Tauri app not running - show app icon
+    chrome.action.setBadgeText({ text: 'APP' });
+    chrome.action.setBadgeBackgroundColor({ color: '#f59e0b' }); // Orange
+  } else if (status.needsSetup) {
+    // Setup needed
+    chrome.action.setBadgeText({ text: '...' });
+    chrome.action.setBadgeBackgroundColor({ color: '#3b82f6' }); // Blue
   } else {
+    // Other error
     chrome.action.setBadgeText({ text: '!' });
-    chrome.action.setBadgeBackgroundColor({ color: '#ef4444' });
+    chrome.action.setBadgeBackgroundColor({ color: '#ef4444' }); // Red
   }
 }
 

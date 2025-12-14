@@ -20,28 +20,57 @@ const personaBtns = document.querySelectorAll('#main-view .persona-btn');
 // Check Ollama status
 async function checkStatus() {
   try {
-    // Get current Ollama URL from settings
-    const settings = window.FeelingWiseSettings.get();
-    const ollamaUrl = settings.ollamaUrl || 'http://localhost:11434';
-
     const response = await chrome.runtime.sendMessage({
-      type: 'CHECK_STATUS',
-      ollamaUrl: ollamaUrl
+      type: 'CHECK_STATUS'
     });
 
     if (response.running) {
+      // All good - protected
       statusDot.className = 'status-dot online';
       statusText.className = 'status-text online';
-      statusText.textContent = 'Connected';
+      statusText.textContent = response.friendlyMessage || 'Protected';
       statsRow.style.display = 'flex';
       offlineWarning.style.display = 'none';
       modelsCount.textContent = response.models?.length || 0;
-    } else {
+    } else if (response.appNotRunning) {
+      // Tauri app not running
       statusDot.className = 'status-dot offline';
       statusText.className = 'status-text offline';
-      statusText.textContent = 'Offline';
+      statusText.textContent = 'App Not Running';
       statsRow.style.display = 'none';
       offlineWarning.style.display = 'block';
+      offlineWarning.innerHTML = `
+        <div class="friendly-warning">
+          <strong>Please start the FeelingWise app</strong>
+          <p>Look for FeelingWise in your Start menu or system tray.</p>
+        </div>
+      `;
+    } else if (response.needsSetup) {
+      // Setup needed
+      statusDot.className = 'status-dot offline';
+      statusText.className = 'status-text offline';
+      statusText.textContent = 'Setup Required';
+      statsRow.style.display = 'none';
+      offlineWarning.style.display = 'block';
+      offlineWarning.innerHTML = `
+        <div class="friendly-warning">
+          <strong>Setup required</strong>
+          <p>Please complete setup in the FeelingWise app.</p>
+        </div>
+      `;
+    } else {
+      // Other issue
+      statusDot.className = 'status-dot offline';
+      statusText.className = 'status-text offline';
+      statusText.textContent = response.friendlyMessage || 'Offline';
+      statsRow.style.display = 'none';
+      offlineWarning.style.display = 'block';
+      offlineWarning.innerHTML = `
+        <div class="friendly-warning">
+          <strong>${response.friendlyMessage || 'Connection issue'}</strong>
+          <p>Try restarting the FeelingWise app.</p>
+        </div>
+      `;
     }
   } catch (error) {
     console.error('Status check failed:', error);
@@ -49,6 +78,12 @@ async function checkStatus() {
     statusText.className = 'status-text offline';
     statusText.textContent = 'Error';
     offlineWarning.style.display = 'block';
+    offlineWarning.innerHTML = `
+      <div class="friendly-warning">
+        <strong>Connection error</strong>
+        <p>Please restart the FeelingWise app.</p>
+      </div>
+    `;
   }
 }
 

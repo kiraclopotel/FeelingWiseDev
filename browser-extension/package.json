@@ -1,0 +1,9 @@
+{
+  "name": "feelingwise-browser-extension",
+  "private": true,
+  "version": "1.0.0",
+  "description": "FeelingWise Browser Extension",
+  "scripts": {
+    "test": "node tests/severity.test.cjs"
+  }
+}

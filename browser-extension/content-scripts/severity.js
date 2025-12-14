@@ -1,29 +1,36 @@
 /**
  * FeelingWise - Severity Scoring Algorithm
  *
+ * Single source of truth for severity calculation.
  * Based on: docs/ALGORITHMS/02-severity-scoring.md
+ *
  * Formula: Severity = Intensity + Centrality + Vulnerability
  */
 
 /**
- * Vulnerability scores per technique type
+ * Vulnerability scores per technique type (1-3 points)
  * Higher scores for techniques targeting primal fears
  */
 const TECHNIQUE_VULNERABILITY = {
-  'Fear Appeal': 3,        // Targets primal survival instincts
-  'Anger/Outrage': 2,      // Targets personal values
-  'Shame/Guilt Attack': 3, // Attacks identity - very harmful
-  'Shame/Guilt': 3,        // Alias
-  'False Urgency': 2,      // Targets decision-making
-  'False Certainty': 1,    // General concern
-  'Scapegoating': 3,       // Group blame, targets belonging
-  'Bandwagon Pressure': 2, // Targets belonging need
-  'Bandwagon': 2,          // Alias
-  'FOMO': 2,               // Fear of missing out
-  'Toxic Positivity': 1,   // Dismisses concerns
-  'Misleading Formatting': 1, // Visual manipulation
-  'Misleading Format': 1,  // Alias
-  'Format Issue': 1        // Fallback
+  // Primal fears (3 points)
+  'Fear Appeal': 3,
+  'Shame/Guilt Attack': 3,
+  'Shame/Guilt': 3,
+  'Scapegoating': 3,
+
+  // Personal values/identity (2 points)
+  'Anger/Outrage': 2,
+  'False Urgency': 2,
+  'Bandwagon Pressure': 2,
+  'Bandwagon': 2,
+  'FOMO': 2,
+
+  // General concern (1 point)
+  'False Certainty': 1,
+  'Toxic Positivity': 1,
+  'Misleading Formatting': 1,
+  'Misleading Format': 1,
+  'Format Issue': 1
 };
 
 /**
@@ -34,6 +41,8 @@ const TECHNIQUE_VULNERABILITY = {
  * @returns {number} 1-4 intensity score
  */
 function assessIntensity(content) {
+  if (!content || typeof content !== 'string') return 1;
+
   let score = 1;
 
   // Check for ALL CAPS words (3+ letters)
@@ -42,20 +51,20 @@ function assessIntensity(content) {
   else if (capsWords >= 3) score = Math.max(score, 3);
   else if (capsWords >= 1) score = Math.max(score, 2);
 
-  // Check for excessive punctuation
+  // Check for excessive punctuation (!! or ??)
   const excessivePunctuation = (content.match(/[!?]{2,}/g) || []).length;
   if (excessivePunctuation >= 3) score = Math.max(score, 4);
   else if (excessivePunctuation >= 2) score = Math.max(score, 3);
   else if (excessivePunctuation >= 1) score = Math.max(score, 2);
 
-  // Check for alarm emojis
+  // Check for alarm emojis (🚨🔥⚠️❗‼️)
   const alarmEmojis = (content.match(/[\u{1F6A8}\u{1F525}\u{26A0}\u{2757}\u{203C}]/gu) || []).length;
   if (alarmEmojis >= 3) score = Math.max(score, 4);
   else if (alarmEmojis >= 2) score = Math.max(score, 3);
   else if (alarmEmojis >= 1) score = Math.max(score, 2);
 
-  // Check for extreme words
-  const extremeWords = /\b(destroy|danger|emergency|crisis|catastrophe|mortal|death|die|kill|urgent|immediate)\b/gi;
+  // Check for extreme/catastrophizing words
+  const extremeWords = /\b(destroy|danger|emergency|crisis|catastrophe|mortal|death|die|kill|urgent|immediate|disaster|threat|terror|horrif)/gi;
   const extremeCount = (content.match(extremeWords) || []).length;
   if (extremeCount >= 3) score = Math.max(score, 4);
   else if (extremeCount >= 2) score = Math.max(score, 3);
@@ -65,30 +74,28 @@ function assessIntensity(content) {
 }
 
 /**
- * Assess centrality of technique to the message (1-3 points)
- * How much of the message relies on this technique?
+ * Assess centrality of manipulation to the message (1-3 points)
+ * How much of the message relies on manipulation?
  *
- * @param {string} content - The original content
  * @param {number} techniqueCount - Number of techniques detected
  * @returns {number} 1-3 centrality score
  */
-function assessCentrality(content, techniqueCount) {
-  // If many techniques detected, manipulation is central to message
-  if (techniqueCount >= 4) return 3;
-  if (techniqueCount >= 2) return 2;
-  return 1;
+function assessCentrality(techniqueCount) {
+  if (techniqueCount >= 4) return 3; // Entire message built on manipulation
+  if (techniqueCount >= 2) return 2; // Significant part of message
+  return 1; // Peripheral to the message
 }
 
 /**
  * Assess vulnerability target of a technique (1-3 points)
- * What does it appeal to?
+ * What primal need/fear does it target?
  *
  * @param {string} techniqueName - Name of the technique
  * @returns {number} 1-3 vulnerability score
  */
 function assessVulnerability(techniqueName) {
-  // Normalize technique name for lookup
-  const normalized = techniqueName.trim();
+  if (!techniqueName) return 1;
+  const normalized = String(techniqueName).trim();
   return TECHNIQUE_VULNERABILITY[normalized] || 1;
 }
 
@@ -101,17 +108,16 @@ function assessVulnerability(techniqueName) {
  */
 function mapToSeverity(total) {
   const severityMap = {
-    3: 1,
-    4: 2,
-    5: 3,
-    6: 4,
-    7: 5,
-    8: 6,
-    9: 8,  // High
-    10: 10 // Critical
+    3: 1,   // Low
+    4: 2,   // Low
+    5: 3,   // Low-Moderate
+    6: 4,   // Low-Moderate
+    7: 5,   // Moderate
+    8: 6,   // Moderate
+    9: 8,   // High
+    10: 10  // Critical
   };
-
-  return severityMap[total] || Math.min(Math.max(total, 1), 10);
+  return severityMap[total] || Math.min(Math.max(Math.round(total), 1), 10);
 }
 
 /**
@@ -123,12 +129,11 @@ function mapToSeverity(total) {
  * @returns {number} Severity score 1-10
  */
 function calculateTechniqueSeverity(techniqueName, content, totalTechniques) {
-  const intensity = assessIntensity(content);           // 1-4
-  const centrality = assessCentrality(content, totalTechniques); // 1-3
-  const vulnerability = assessVulnerability(techniqueName);      // 1-3
+  const intensity = assessIntensity(content);
+  const centrality = assessCentrality(totalTechniques);
+  const vulnerability = assessVulnerability(techniqueName);
 
-  const total = intensity + centrality + vulnerability; // 3-10
-
+  const total = intensity + centrality + vulnerability; // Range: 3-10
   return mapToSeverity(total);
 }
 
@@ -136,57 +141,91 @@ function calculateTechniqueSeverity(techniqueName, content, totalTechniques) {
  * Calculate overall severity from detected techniques
  * Uses the maximum technique severity as the overall score
  *
- * @param {Array} techniques - Array of detected techniques (strings or objects)
+ * @param {Array} techniques - Array of detected techniques (strings or objects with name property)
  * @param {string} content - Original content
- * @param {number|null} aiSeverity - AI-provided severity (optional fallback)
  * @returns {number} Overall severity score 0-10
  */
-function calculateOverallSeverity(techniques, content, aiSeverity = null) {
-  // Edge case: no techniques detected
+function calculateSeverity(techniques, content) {
+  // Edge case: no techniques detected → severity 0
   if (!techniques || !Array.isArray(techniques) || techniques.length === 0) {
     return 0;
   }
 
   // Calculate severity for each technique
   const severities = techniques.map(technique => {
-    const name = typeof technique === 'string' ? technique : (technique.name || 'Unknown');
+    const name = typeof technique === 'string'
+      ? technique
+      : (technique?.name || 'Unknown');
     return calculateTechniqueSeverity(name, content, techniques.length);
   });
 
-  // Return maximum severity (worst technique determines score)
+  // Return maximum severity (worst technique determines overall score)
   const maxSeverity = Math.max(...severities);
 
-  // Validate result
-  if (isNaN(maxSeverity) || maxSeverity === null || maxSeverity === undefined) {
-    // Fall back to AI severity or default
-    const fallback = typeof aiSeverity === 'number' ? aiSeverity :
-                     typeof aiSeverity === 'string' ? parseInt(aiSeverity, 10) : 5;
-    return isNaN(fallback) ? 5 : Math.max(0, Math.min(10, fallback));
+  // Guard against NaN (edge case: empty severities array after spread)
+  if (isNaN(maxSeverity) || maxSeverity === -Infinity) {
+    return 0;
   }
 
   return Math.max(0, Math.min(10, Math.round(maxSeverity)));
 }
 
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    calculateOverallSeverity,
+/**
+ * Parse and validate severity from external source (e.g., AI response)
+ * Handles string/number conversion and bounds checking
+ *
+ * @param {*} value - Raw severity value from external source
+ * @param {number} fallback - Fallback value if parsing fails (default: 0)
+ * @returns {number} Valid severity 0-10
+ */
+function parseSeverity(value, fallback = 0) {
+  if (value === null || value === undefined) return fallback;
+
+  const parsed = typeof value === 'number' ? value : parseInt(String(value), 10);
+
+  if (isNaN(parsed)) return fallback;
+
+  return Math.max(0, Math.min(10, Math.round(parsed)));
+}
+
+// Export for service worker (importScripts)
+if (typeof self !== 'undefined' && typeof self.FW_Severity === 'undefined') {
+  self.FW_Severity = {
+    calculateSeverity,
     calculateTechniqueSeverity,
     assessIntensity,
     assessCentrality,
     assessVulnerability,
+    mapToSeverity,
+    parseSeverity,
     TECHNIQUE_VULNERABILITY
   };
 }
 
-// Export for browser context
+// Export for content scripts (window context)
 if (typeof window !== 'undefined') {
   window.FW_Severity = {
-    calculateOverallSeverity,
+    calculateSeverity,
     calculateTechniqueSeverity,
     assessIntensity,
     assessCentrality,
     assessVulnerability,
+    mapToSeverity,
+    parseSeverity,
+    TECHNIQUE_VULNERABILITY
+  };
+}
+
+// Export for Node.js (testing)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    calculateSeverity,
+    calculateTechniqueSeverity,
+    assessIntensity,
+    assessCentrality,
+    assessVulnerability,
+    mapToSeverity,
+    parseSeverity,
     TECHNIQUE_VULNERABILITY
   };
 }

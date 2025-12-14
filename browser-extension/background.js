@@ -5,122 +5,17 @@
  * Implements caching to avoid redundant AI calls.
  */
 
+// Import severity scoring module (single source of truth)
+importScripts('content-scripts/severity.js');
+
 const OLLAMA_BASE_URL = 'http://localhost:11434';
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 // In-memory cache for neutralizations
 const cache = new Map();
 
-// =============================================================================
-// SEVERITY SCORING ALGORITHM (from docs/ALGORITHMS/02-severity-scoring.md)
-// Formula: Severity = Intensity + Centrality + Vulnerability
-// =============================================================================
-
-/**
- * Vulnerability scores per technique type
- * Higher scores for techniques targeting primal fears
- */
-const TECHNIQUE_VULNERABILITY = {
-  'Fear Appeal': 3,        // Targets primal survival instincts
-  'Anger/Outrage': 2,      // Targets personal values
-  'Shame/Guilt Attack': 3, // Attacks identity - very harmful
-  'Shame/Guilt': 3,        // Alias
-  'False Urgency': 2,      // Targets decision-making
-  'False Certainty': 1,    // General concern
-  'Scapegoating': 3,       // Group blame, targets belonging
-  'Bandwagon Pressure': 2, // Targets belonging need
-  'Bandwagon': 2,          // Alias
-  'FOMO': 2,               // Fear of missing out
-  'Toxic Positivity': 1,   // Dismisses concerns
-  'Misleading Formatting': 1, // Visual manipulation
-  'Misleading Format': 1,  // Alias
-  'Format Issue': 1        // Fallback
-};
-
-/**
- * Assess intensity of manipulation (1-4 points)
- */
-function assessIntensity(content) {
-  let score = 1;
-
-  // Check for ALL CAPS words (3+ letters)
-  const capsWords = (content.match(/\b[A-Z]{3,}\b/g) || []).length;
-  if (capsWords >= 5) score = Math.max(score, 4);
-  else if (capsWords >= 3) score = Math.max(score, 3);
-  else if (capsWords >= 1) score = Math.max(score, 2);
-
-  // Check for excessive punctuation
-  const excessivePunctuation = (content.match(/[!?]{2,}/g) || []).length;
-  if (excessivePunctuation >= 3) score = Math.max(score, 4);
-  else if (excessivePunctuation >= 2) score = Math.max(score, 3);
-  else if (excessivePunctuation >= 1) score = Math.max(score, 2);
-
-  // Check for alarm emojis
-  const alarmEmojis = (content.match(/[\u{1F6A8}\u{1F525}\u{26A0}\u{2757}\u{203C}]/gu) || []).length;
-  if (alarmEmojis >= 3) score = Math.max(score, 4);
-  else if (alarmEmojis >= 2) score = Math.max(score, 3);
-  else if (alarmEmojis >= 1) score = Math.max(score, 2);
-
-  // Check for extreme words
-  const extremeWords = /\b(destroy|danger|emergency|crisis|catastrophe|mortal|death|die|kill|urgent|immediate)\b/gi;
-  const extremeCount = (content.match(extremeWords) || []).length;
-  if (extremeCount >= 3) score = Math.max(score, 4);
-  else if (extremeCount >= 2) score = Math.max(score, 3);
-  else if (extremeCount >= 1) score = Math.max(score, 2);
-
-  return score;
-}
-
-/**
- * Assess centrality of technique to the message (1-3 points)
- */
-function assessCentrality(techniqueCount) {
-  if (techniqueCount >= 4) return 3;
-  if (techniqueCount >= 2) return 2;
-  return 1;
-}
-
-/**
- * Assess vulnerability target of a technique (1-3 points)
- */
-function assessVulnerability(techniqueName) {
-  const normalized = (techniqueName || '').trim();
-  return TECHNIQUE_VULNERABILITY[normalized] || 1;
-}
-
-/**
- * Map raw total (3-10) to final severity rating (1-10)
- */
-function mapToSeverity(total) {
-  const severityMap = { 3: 1, 4: 2, 5: 3, 6: 4, 7: 5, 8: 6, 9: 8, 10: 10 };
-  return severityMap[total] || Math.min(Math.max(total, 1), 10);
-}
-
-/**
- * Calculate overall severity from detected techniques
- */
-function calculateSeverity(techniques, content) {
-  // Edge case: no techniques
-  if (!techniques || !Array.isArray(techniques) || techniques.length === 0) {
-    return 0;
-  }
-
-  const intensity = assessIntensity(content);
-  const centrality = assessCentrality(techniques.length);
-
-  // Calculate severity for each technique, take maximum
-  const severities = techniques.map(technique => {
-    const name = typeof technique === 'string' ? technique : (technique.name || 'Unknown');
-    const vulnerability = assessVulnerability(name);
-    const total = intensity + centrality + vulnerability;
-    return mapToSeverity(total);
-  });
-
-  const maxSeverity = Math.max(...severities);
-  return isNaN(maxSeverity) ? 0 : Math.max(0, Math.min(10, Math.round(maxSeverity)));
-}
-
-// =============================================================================
+// Get severity functions from imported module
+const { calculateSeverity } = self.FW_Severity;
 
 // Default settings
 const DEFAULT_SETTINGS = {

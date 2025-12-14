@@ -1,0 +1,83 @@
+{
+  "meta": {
+    "code": "en",
+    "name": "English",
+    "direction": "ltr"
+  },
+  "popup": {
+    "title": "FeelingWise",
+    "subtitle": "Content Neutralizer",
+    "status": {
+      "label": "Local AI Status",
+      "checking": "Checking...",
+      "connected": "Connected",
+      "offline": "Offline",
+      "error": "Error"
+    },
+    "stats": {
+      "models": "Models",
+      "processed": "Processed"
+    },
+    "warning": {
+      "notRunning": "FeelingWise desktop app is not running.",
+      "downloadApp": "Download the app",
+      "toEnable": "to enable local AI processing."
+    },
+    "settings": {
+      "enableProtection": "Enable Protection",
+      "autoNeutralize": "Auto-Neutralize",
+      "showIndicators": "Show Indicators"
+    },
+    "protectionMode": {
+      "label": "Protection Mode",
+      "child": "Child",
+      "teen": "Teen",
+      "adult": "Adult"
+    },
+    "footer": {
+      "viewOnGithub": "View on GitHub"
+    }
+  },
+  "content": {
+    "showOriginal": "Show Original",
+    "showNeutralized": "Show Neutralized",
+    "analyze": "Analyze",
+    "whyThis": "Why this?",
+    "close": "Close",
+    "technique": "technique",
+    "techniques": "techniques"
+  },
+  "analysis": {
+    "teen": {
+      "header": "Hey, here's what I noticed",
+      "techniquesUsed": "Techniques used:",
+      "manipulationLevel": "Manipulation level:",
+      "thinkAboutIt": "Think about it:",
+      "questions": {
+        "whyTechniques": "Why might they use these techniques instead of just stating facts?",
+        "feelVsThink": "How does this make you feel vs. what does it make you think?",
+        "calmVersion": "What would a calm version of this look like?"
+      },
+      "calmerVersion": "Calmer version:"
+    },
+    "adult": {
+      "header": "Analysis",
+      "detected": "Detected:",
+      "severity": "Severity:",
+      "neutralized": "Neutralized:",
+      "yourCall": "Your call. Toggle above to switch views."
+    }
+  },
+  "severity": {
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low"
+  },
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "reset": "Reset",
+    "language": "Language"
+  }
+}

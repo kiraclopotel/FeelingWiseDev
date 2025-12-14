@@ -39,10 +39,11 @@
   - Spec: Settings should be IN-POPUP (not external)
   - Sections: Language, Protection Mode, Data, Export, Advanced
 
-- [ ] **Task 6: Create Language System Foundation**
-  - Create: `locales/en.json`, `locales/ro.json`
-  - Create: `localization.js`
-  - Spec: docs/ALGORITHMS/15-cross-lingual.md
+- [x] **Task 6: Create Language System Foundation** ✓
+  - Created: `locales/en.json`, `locales/ro.json`
+  - Created: `localization.js`
+  - Updated `manifest.json` with web_accessible_resources
+  - Commit: 402ee96
 
 - [ ] **Task 7: Wire Up Language Selector**
   - All UI text should change when language selected

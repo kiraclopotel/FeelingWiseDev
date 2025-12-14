@@ -34,21 +34,27 @@
   "content_scripts": [
     {
       "matches": ["*://*.twitter.com/*", "*://*.x.com/*"],
-      "js": ["content-scripts/common.js", "content-scripts/twitter.js"],
+      "js": ["localization.js", "content-scripts/common.js", "content-scripts/twitter.js"],
       "css": ["content-scripts/styles.css"],
       "run_at": "document_idle"
     },
     {
       "matches": ["*://*.facebook.com/*"],
-      "js": ["content-scripts/common.js", "content-scripts/facebook.js"],
+      "js": ["localization.js", "content-scripts/common.js", "content-scripts/facebook.js"],
       "css": ["content-scripts/styles.css"],
       "run_at": "document_idle"
     },
     {
       "matches": ["*://*.youtube.com/*"],
-      "js": ["content-scripts/common.js", "content-scripts/youtube.js"],
+      "js": ["localization.js", "content-scripts/common.js", "content-scripts/youtube.js"],
       "css": ["content-scripts/styles.css"],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["locales/*.json"],
+      "matches": ["<all_urls>"]
     }
   ]
 }

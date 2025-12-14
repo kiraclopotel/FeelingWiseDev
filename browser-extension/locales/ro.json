@@ -1,0 +1,83 @@
+{
+  "meta": {
+    "code": "ro",
+    "name": "Română",
+    "direction": "ltr"
+  },
+  "popup": {
+    "title": "FeelingWise",
+    "subtitle": "Neutralizator de Conținut",
+    "status": {
+      "label": "Stare AI Local",
+      "checking": "Se verifică...",
+      "connected": "Conectat",
+      "offline": "Deconectat",
+      "error": "Eroare"
+    },
+    "stats": {
+      "models": "Modele",
+      "processed": "Procesate"
+    },
+    "warning": {
+      "notRunning": "Aplicația FeelingWise nu rulează.",
+      "downloadApp": "Descarcă aplicația",
+      "toEnable": "pentru a activa procesarea AI locală."
+    },
+    "settings": {
+      "enableProtection": "Activează protecția",
+      "autoNeutralize": "Neutralizare automată",
+      "showIndicators": "Afișează indicatori"
+    },
+    "protectionMode": {
+      "label": "Mod de protecție",
+      "child": "Copil",
+      "teen": "Adolescent",
+      "adult": "Adult"
+    },
+    "footer": {
+      "viewOnGithub": "Vezi pe GitHub"
+    }
+  },
+  "content": {
+    "showOriginal": "Arată originalul",
+    "showNeutralized": "Arată neutralizatul",
+    "analyze": "Analizează",
+    "whyThis": "De ce asta?",
+    "close": "Închide",
+    "technique": "tehnică",
+    "techniques": "tehnici"
+  },
+  "analysis": {
+    "teen": {
+      "header": "Hei, uite ce am observat",
+      "techniquesUsed": "Tehnici folosite:",
+      "manipulationLevel": "Nivel de manipulare:",
+      "thinkAboutIt": "Gândește-te la asta:",
+      "questions": {
+        "whyTechniques": "De ce ar folosi aceste tehnici în loc să prezinte doar faptele?",
+        "feelVsThink": "Ce te face să simți versus ce te face să gândești?",
+        "calmVersion": "Cum ar arăta o versiune calmă a acestui text?"
+      },
+      "calmerVersion": "Versiune mai calmă:"
+    },
+    "adult": {
+      "header": "Analiză",
+      "detected": "Detectat:",
+      "severity": "Severitate:",
+      "neutralized": "Neutralizat:",
+      "yourCall": "Tu decizi. Comută mai sus pentru a schimba vizualizarea."
+    }
+  },
+  "severity": {
+    "high": "Ridicat",
+    "medium": "Mediu",
+    "low": "Scăzut"
+  },
+  "common": {
+    "loading": "Se încarcă...",
+    "save": "Salvează",
+    "cancel": "Anulează",
+    "reset": "Resetează",
+    "language": "Limbă"
+  }
+}

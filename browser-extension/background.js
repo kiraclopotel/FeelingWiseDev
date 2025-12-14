@@ -25,8 +25,8 @@ let appStatus = {
 // In-memory cache for neutralizations
 const cache = new Map();
 
-// Get severity functions from imported module
-const { calculateSeverity } = self.FW_Severity;
+// Access severity functions from imported module (don't redeclare - they're already in scope)
+// Use self.FW_Severity.calculateSeverity when needed, or reference the global function directly
 
 // Default settings
 const DEFAULT_SETTINGS = {

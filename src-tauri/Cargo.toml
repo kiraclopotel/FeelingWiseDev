@@ -52,6 +52,7 @@ uuid = { version = "1.0", features = ["v4"] }
 
 # Directories for app data paths
 directories = "5.0"
+dirs = "5.0"
 
 # Futures utilities for async streams
 futures-util = "0.3"

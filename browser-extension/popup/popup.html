@@ -52,8 +52,56 @@
       letter-spacing: 0.5px;
     }
 
+    /* Tab Bar */
+    .tab-bar {
+      display: flex;
+      background: #0d0d0d;
+      border-bottom: 1px solid #2a2a2a;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px 16px;
+      background: transparent;
+      border: none;
+      color: #6b7280;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      position: relative;
+    }
+
+    .tab-btn:hover {
+      color: #a5b4fc;
+      background: rgba(99, 102, 241, 0.05);
+    }
+
+    .tab-btn.active {
+      color: #a5b4fc;
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #6366f1, #10b981);
+    }
+
     .content {
       padding: 16px;
+    }
+
+    /* Tab Views */
+    .tab-view {
+      display: none;
+    }
+
+    .tab-view.active {
+      display: block;
     }
 
     /* Status Section */
@@ -126,10 +174,17 @@
       font-weight: 500;
     }
 
+    .setting-sublabel {
+      font-size: 10px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
     .toggle {
       position: relative;
       width: 44px;
       height: 24px;
+      flex-shrink: 0;
     }
 
     .toggle input {
@@ -219,6 +274,12 @@
       margin-bottom: 4px;
     }
 
+    .persona-age {
+      font-size: 9px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
     /* Footer */
     .footer {
       padding: 12px 16px;
@@ -290,6 +351,117 @@
       text-transform: uppercase;
       margin-top: 2px;
     }
+
+    /* Settings View Styles */
+    .settings-section {
+      margin-bottom: 20px;
+    }
+
+    .settings-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .settings-section-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #6b7280;
+      font-weight: 600;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #2a2a2a;
+    }
+
+    /* Dropdown Select */
+    .select-wrapper {
+      position: relative;
+    }
+
+    .settings-select {
+      width: 100%;
+      padding: 10px 12px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      color: #e5e5e5;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+    }
+
+    .settings-select:hover {
+      border-color: #3a3a3a;
+    }
+
+    .settings-select:focus {
+      outline: none;
+      border-color: rgba(99, 102, 241, 0.5);
+    }
+
+    .select-wrapper::after {
+      content: '';
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 5px solid #6b7280;
+      pointer-events: none;
+    }
+
+    /* Text Input */
+    .settings-input {
+      width: 100%;
+      padding: 10px 12px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      color: #e5e5e5;
+      font-size: 13px;
+      font-family: monospace;
+    }
+
+    .settings-input:hover {
+      border-color: #3a3a3a;
+    }
+
+    .settings-input:focus {
+      outline: none;
+      border-color: rgba(99, 102, 241, 0.5);
+    }
+
+    .settings-input::placeholder {
+      color: #5a5a5a;
+    }
+
+    .input-hint {
+      font-size: 10px;
+      color: #5a5a5a;
+      margin-top: 6px;
+    }
+
+    /* Settings Toggle Row */
+    .settings-toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+    }
+
+    .settings-toggle-row:first-child {
+      padding-top: 0;
+    }
+
+    .settings-toggle-label {
+      font-size: 13px;
+      color: #e5e5e5;
+    }
   </style>
 </head>
 <body>
@@ -301,76 +473,155 @@
     </div>
   </div>
 
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="main">Main</button>
+    <button class="tab-btn" data-tab="settings">Settings</button>
+  </div>
+
   <div class="content">
-    <!-- Status Card -->
-    <div class="status-card">
-      <div class="status-row">
-        <span class="status-label">Local AI Status</span>
-        <div class="status-value">
-          <span class="status-dot" id="status-dot"></span>
-          <span class="status-text" id="status-text">Checking...</span>
+    <!-- Main Tab View -->
+    <div class="tab-view active" id="main-view">
+      <!-- Status Card -->
+      <div class="status-card">
+        <div class="status-row">
+          <span class="status-label">Local AI Status</span>
+          <div class="status-value">
+            <span class="status-dot" id="status-dot"></span>
+            <span class="status-text" id="status-text">Checking...</span>
+          </div>
+        </div>
+        <div class="stats-row" id="stats-row" style="display: none;">
+          <div class="stat-box">
+            <div class="stat-value" id="models-count">0</div>
+            <div class="stat-label">Models</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="processed-count">0</div>
+            <div class="stat-label">Processed</div>
+          </div>
         </div>
       </div>
-      <div class="stats-row" id="stats-row" style="display: none;">
-        <div class="stat-box">
-          <div class="stat-value" id="models-count">0</div>
-          <div class="stat-label">Models</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-value" id="processed-count">0</div>
-          <div class="stat-label">Processed</div>
+
+      <!-- Warning if offline -->
+      <div class="warning" id="offline-warning" style="display: none;">
+        FeelingWise desktop app is not running.
+        <a href="https://github.com/kiraclopotel/FeelingWise" target="_blank">Download the app</a>
+        to enable local AI processing.
+      </div>
+
+      <!-- Quick Settings -->
+      <div class="setting-row">
+        <span class="setting-label">Enable Protection</span>
+        <label class="toggle">
+          <input type="checkbox" id="toggle-enabled" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-row">
+        <span class="setting-label">Auto-Neutralize</span>
+        <label class="toggle">
+          <input type="checkbox" id="toggle-auto" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-row">
+        <span class="setting-label">Show Indicators</span>
+        <label class="toggle">
+          <input type="checkbox" id="toggle-indicators" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- Persona Selection -->
+      <div class="persona-section">
+        <div class="section-label">Protection Mode</div>
+        <div class="persona-options">
+          <button class="persona-btn" data-persona="child">
+            <div class="persona-icon">&#x1F9D2;</div>
+            Child
+            <div class="persona-age">8-12</div>
+          </button>
+          <button class="persona-btn" data-persona="teen">
+            <div class="persona-icon">&#x1F9D1;</div>
+            Teen
+            <div class="persona-age">13-17</div>
+          </button>
+          <button class="persona-btn active" data-persona="adult">
+            <div class="persona-icon">&#x1F464;</div>
+            Adult
+            <div class="persona-age">18+</div>
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- Warning if offline -->
-    <div class="warning" id="offline-warning" style="display: none;">
-      FeelingWise desktop app is not running.
-      <a href="https://github.com/kiraclopotel/FeelingWise" target="_blank">Download the app</a>
-      to enable local AI processing.
-    </div>
+    <!-- Settings Tab View -->
+    <div class="tab-view" id="settings-view">
+      <!-- Language Section -->
+      <div class="settings-section">
+        <div class="settings-section-title">Language</div>
+        <div class="select-wrapper">
+          <select class="settings-select" id="settings-language">
+            <option value="en">English</option>
+            <option value="ro">Romanian</option>
+          </select>
+        </div>
+      </div>
 
-    <!-- Settings -->
-    <div class="setting-row">
-      <span class="setting-label">Enable Protection</span>
-      <label class="toggle">
-        <input type="checkbox" id="toggle-enabled" checked>
-        <span class="toggle-slider"></span>
-      </label>
-    </div>
+      <!-- Protection Mode Section -->
+      <div class="settings-section">
+        <div class="settings-section-title">Protection Mode</div>
+        <div class="persona-options">
+          <button class="persona-btn settings-persona-btn" data-persona="child">
+            <div class="persona-icon">&#x1F9D2;</div>
+            Child
+            <div class="persona-age">8-12</div>
+          </button>
+          <button class="persona-btn settings-persona-btn" data-persona="teen">
+            <div class="persona-icon">&#x1F9D1;</div>
+            Teen
+            <div class="persona-age">13-17</div>
+          </button>
+          <button class="persona-btn settings-persona-btn active" data-persona="adult">
+            <div class="persona-icon">&#x1F464;</div>
+            Adult
+            <div class="persona-age">18+</div>
+          </button>
+        </div>
+      </div>
 
-    <div class="setting-row">
-      <span class="setting-label">Auto-Neutralize</span>
-      <label class="toggle">
-        <input type="checkbox" id="toggle-auto" checked>
-        <span class="toggle-slider"></span>
-      </label>
-    </div>
+      <!-- Data Section -->
+      <div class="settings-section">
+        <div class="settings-section-title">Data</div>
+        <div class="settings-toggle-row">
+          <span class="settings-toggle-label">Store history</span>
+          <label class="toggle">
+            <input type="checkbox" id="settings-store-history" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="settings-toggle-row">
+          <span class="settings-toggle-label">Include timestamps</span>
+          <label class="toggle">
+            <input type="checkbox" id="settings-timestamps" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
 
-    <div class="setting-row">
-      <span class="setting-label">Show Indicators</span>
-      <label class="toggle">
-        <input type="checkbox" id="toggle-indicators" checked>
-        <span class="toggle-slider"></span>
-      </label>
-    </div>
-
-    <!-- Persona Selection -->
-    <div class="persona-section">
-      <div class="section-label">Protection Mode</div>
-      <div class="persona-options">
-        <button class="persona-btn" data-persona="child">
-          <div class="persona-icon">&#x1F9D2;</div>
-          Child
-        </button>
-        <button class="persona-btn" data-persona="teen">
-          <div class="persona-icon">&#x1F9D1;</div>
-          Teen
-        </button>
-        <button class="persona-btn active" data-persona="adult">
-          <div class="persona-icon">&#x1F464;</div>
-          Adult
-        </button>
+      <!-- Advanced Section -->
+      <div class="settings-section">
+        <div class="settings-section-title">Advanced</div>
+        <input
+          type="text"
+          class="settings-input"
+          id="settings-ollama-url"
+          placeholder="http://localhost:11434"
+        >
+        <div class="input-hint">Ollama API endpoint URL</div>
       </div>
     </div>
   </div>
@@ -382,6 +633,7 @@
     <span class="version">v1.0.0</span>
   </div>
 
+  <script src="settings.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

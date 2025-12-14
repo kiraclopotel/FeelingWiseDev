@@ -2,6 +2,7 @@
  * FeelingWise Browser Extension - Popup Script
  *
  * Handles the extension popup UI and settings management.
+ * Works with settings.js for persistent storage.
  */
 
 // DOM Elements
@@ -14,20 +15,19 @@ const offlineWarning = document.getElementById('offline-warning');
 const toggleEnabled = document.getElementById('toggle-enabled');
 const toggleAuto = document.getElementById('toggle-auto');
 const toggleIndicators = document.getElementById('toggle-indicators');
-const personaBtns = document.querySelectorAll('.persona-btn');
-
-// Current settings
-let currentSettings = {
-  enabled: true,
-  persona: 'adult',
-  autoNeutralize: true,
-  showIndicators: true
-};
+const personaBtns = document.querySelectorAll('#main-view .persona-btn');
 
 // Check Ollama status
 async function checkStatus() {
   try {
-    const response = await chrome.runtime.sendMessage({ type: 'CHECK_STATUS' });
+    // Get current Ollama URL from settings
+    const settings = window.FeelingWiseSettings.get();
+    const ollamaUrl = settings.ollamaUrl || 'http://localhost:11434';
+
+    const response = await chrome.runtime.sendMessage({
+      type: 'CHECK_STATUS',
+      ollamaUrl: ollamaUrl
+    });
 
     if (response.running) {
       statusDot.className = 'status-dot online';
@@ -52,39 +52,17 @@ async function checkStatus() {
   }
 }
 
-// Load settings
-async function loadSettings() {
-  try {
-    const response = await chrome.runtime.sendMessage({ type: 'GET_SETTINGS' });
-    if (response) {
-      currentSettings = response;
-      updateUI();
-    }
-  } catch (error) {
-    console.error('Failed to load settings:', error);
-  }
-}
-
-// Save settings
-async function saveSettings() {
-  try {
-    await chrome.runtime.sendMessage({
-      type: 'SAVE_SETTINGS',
-      settings: currentSettings
-    });
-  } catch (error) {
-    console.error('Failed to save settings:', error);
-  }
-}
-
 // Update UI to reflect current settings
-function updateUI() {
-  toggleEnabled.checked = currentSettings.enabled;
-  toggleAuto.checked = currentSettings.autoNeutralize;
-  toggleIndicators.checked = currentSettings.showIndicators;
+function updateMainTabUI() {
+  const settings = window.FeelingWiseSettings.get();
 
+  toggleEnabled.checked = settings.enabled;
+  toggleAuto.checked = settings.autoNeutralize;
+  toggleIndicators.checked = settings.showIndicators;
+
+  // Update persona buttons on main tab
   personaBtns.forEach(btn => {
-    if (btn.dataset.persona === currentSettings.persona) {
+    if (btn.dataset.persona === settings.persona) {
       btn.classList.add('active');
     } else {
       btn.classList.remove('active');
@@ -92,30 +70,55 @@ function updateUI() {
   });
 }
 
-// Event listeners
-toggleEnabled.addEventListener('change', () => {
-  currentSettings.enabled = toggleEnabled.checked;
-  saveSettings();
-});
-
-toggleAuto.addEventListener('change', () => {
-  currentSettings.autoNeutralize = toggleAuto.checked;
-  saveSettings();
-});
-
-toggleIndicators.addEventListener('change', () => {
-  currentSettings.showIndicators = toggleIndicators.checked;
-  saveSettings();
-});
-
-personaBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    personaBtns.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentSettings.persona = btn.dataset.persona;
-    saveSettings();
+// Setup event listeners for main tab controls
+function setupMainTabListeners() {
+  toggleEnabled.addEventListener('change', () => {
+    window.FeelingWiseSettings.update('enabled', toggleEnabled.checked);
+    notifyBackgroundSettings();
   });
-});
+
+  toggleAuto.addEventListener('change', () => {
+    window.FeelingWiseSettings.update('autoNeutralize', toggleAuto.checked);
+    notifyBackgroundSettings();
+  });
+
+  toggleIndicators.addEventListener('change', () => {
+    window.FeelingWiseSettings.update('showIndicators', toggleIndicators.checked);
+    notifyBackgroundSettings();
+  });
+
+  // Main tab persona buttons
+  personaBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const persona = btn.dataset.persona;
+
+      // Update all persona buttons (both tabs)
+      document.querySelectorAll('.persona-btn').forEach(b => {
+        if (b.dataset.persona === persona) {
+          b.classList.add('active');
+        } else {
+          b.classList.remove('active');
+        }
+      });
+
+      window.FeelingWiseSettings.update('persona', persona);
+      notifyBackgroundSettings();
+    });
+  });
+}
+
+// Notify background script of settings changes
+async function notifyBackgroundSettings() {
+  try {
+    const settings = window.FeelingWiseSettings.get();
+    await chrome.runtime.sendMessage({
+      type: 'SAVE_SETTINGS',
+      settings: settings
+    });
+  } catch (error) {
+    console.error('Failed to notify background:', error);
+  }
+}
 
 // Get processed count from storage
 async function updateProcessedCount() {
@@ -129,8 +132,19 @@ async function updateProcessedCount() {
 
 // Initialize popup
 async function init() {
+  // Initialize settings module first
+  await window.FeelingWiseSettings.init();
+
+  // Setup main tab listeners
+  setupMainTabListeners();
+
+  // Update main tab UI with loaded settings
+  updateMainTabUI();
+
+  // Check Ollama status
   await checkStatus();
-  await loadSettings();
+
+  // Update processed count
   await updateProcessedCount();
 
   // Refresh status periodically while popup is open

@@ -2,7 +2,7 @@
 
 ## Current Phase: Phase 1 - UI Polish & Core Fixes ✅ COMPLETE
 
-**Currently Working On:** Phase 2 ready
+**Currently Working On:** Task 6 (Language System Foundation)
 
 ---
 
@@ -34,10 +34,11 @@
 
 ## Phase 2: Settings & Language
 
-- [ ] **Task 5: Add Settings Tab to Popup**
+- [x] **Task 5: Add Settings Tab to Popup** ✓
   - Files: `popup.html`, `popup.js`, new `settings.js`
   - Spec: Settings should be IN-POPUP (not external)
-  - Sections: Language, Protection Mode, Data, Export, Advanced
+  - Sections: Language, Protection Mode, Data, Advanced
+  - Implemented: Tab bar with Main/Settings views, chrome.storage.sync persistence
 
 - [ ] **Task 6: Create Language System Foundation**
   - Create: `locales/en.json`, `locales/ro.json`

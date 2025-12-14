@@ -343,7 +343,7 @@ pub fn run() {
 
     // Clone references for async tasks
     let supervisor_for_bridge = app_state.supervisor.clone();
-    let settings_for_bridge = app_state.settings.clone();
+    let _settings_for_bridge = app_state.settings.clone();
 
     tauri::Builder::default()
         .manage(app_state)
@@ -484,7 +484,7 @@ fn setup_system_tray(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Err
     let _tray = TrayIconBuilder::new()
         .icon(app.default_window_icon().unwrap().clone())
         .menu(&menu)
-        .menu_on_left_click(false)
+        .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
             "show" => {
                 if let Some(window) = app.get_webview_window("main") {

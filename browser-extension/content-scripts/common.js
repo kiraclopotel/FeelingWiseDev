@@ -12,27 +12,10 @@ let FW_SETTINGS = {
   showIndicators: true
 };
 
-// Platform-specific style configurations
-const PLATFORM_STYLES = {
-  twitter: {
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-    fontSize: '15px',
-    lineHeight: '20px'
-  },
-  tiktok: {
-    fontFamily: 'TikTokFont, Arial, sans-serif',
-    fontSize: '16px',
-    lineHeight: '22px'
-  },
-  facebook: {
-    fontFamily: 'Helvetica, Arial, sans-serif',
-    fontSize: '14px',
-    lineHeight: '19px'
-  }
-};
-
 /**
  * Detect current platform based on hostname
+ * Used for platform-specific content selectors, not styling
+ * Font matching is universal via captureElementStyles()
  */
 function detectPlatform() {
   const hostname = window.location.hostname;
@@ -40,11 +23,19 @@ function detectPlatform() {
   if (hostname.includes('tiktok')) return 'tiktok';
   if (hostname.includes('facebook') || hostname.includes('fb.com')) return 'facebook';
   if (hostname.includes('youtube')) return 'youtube';
-  return 'twitter'; // default
+  if (hostname.includes('instagram')) return 'instagram';
+  if (hostname.includes('reddit')) return 'reddit';
+  if (hostname.includes('linkedin')) return 'linkedin';
+  return 'unknown';
 }
 
 /**
- * Get computed styles from an element for font matching
+ * Get computed styles from an element for universal font matching
+ *
+ * This approach is platform-agnostic - it captures the actual computed
+ * styles from the DOM, so neutralized text matches the original exactly
+ * on ANY website (Twitter, Facebook, TikTok, Reddit, etc.)
+ *
  * Looks for actual text-containing elements to get accurate styles,
  * since platforms often style child elements rather than containers.
  */
@@ -468,6 +459,5 @@ window.FW = {
   createNeutralizedWrapper,
   processedElements,
   captureElementStyles,
-  detectPlatform,
-  PLATFORM_STYLES
+  detectPlatform
 };

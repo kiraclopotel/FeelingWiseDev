@@ -17,7 +17,7 @@ tauri-build = { version = "2.5.3", features = [] }
 
 [dependencies]
 # Tauri core
-tauri = { version = "2.9.5", features = [] }
+tauri = { version = "2.9.5", features = ["tray-icon", "image-png"] }
 tauri-plugin-log = "2"
 tauri-plugin-shell = "2"
 
@@ -55,3 +55,14 @@ directories = "5.0"
 
 # Futures utilities for async streams
 futures-util = "0.3"
+
+# HTTP server for extension bridge
+axum = "0.7"
+tower-http = { version = "0.5", features = ["cors"] }
+
+# Open URLs in browser
+open = "5"
+
+# Windows registry for auto-start
+[target.'cfg(windows)'.dependencies]
+winreg = "0.52"

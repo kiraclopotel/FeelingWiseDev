@@ -1,9 +1,16 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::time::{sleep, Duration};
+
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 const OLLAMA_API_BASE: &str = "http://127.0.0.1:11434";
 const HEALTH_CHECK_INTERVAL: Duration = Duration::from_secs(5);
@@ -97,30 +104,91 @@ impl OllamaManager {
 
     /// Check if Ollama is installed on the system
     pub fn is_ollama_installed() -> bool {
+        Self::find_ollama_binary().is_some()
+    }
+
+    /// Find Ollama binary across common installation paths
+    pub fn find_ollama_binary() -> Option<PathBuf> {
         #[cfg(target_os = "windows")]
         {
-            Command::new("where")
+            // Check common Windows installation paths
+            let possible_paths = [
+                // User-specific installation (most common for Ollama)
+                dirs::data_local_dir()
+                    .map(|p| p.join("Programs").join("Ollama").join("ollama.exe")),
+                // Alternative user path
+                dirs::home_dir()
+                    .map(|p| p.join("AppData").join("Local").join("Programs").join("Ollama").join("ollama.exe")),
+                // System-wide installation
+                Some(PathBuf::from(r"C:\Program Files\Ollama\ollama.exe")),
+            ];
+
+            for path in possible_paths.iter().flatten() {
+                if path.exists() {
+                    log::info!("Found Ollama at: {:?}", path);
+                    return Some(path.clone());
+                }
+            }
+
+            // Check PATH as fallback
+            if let Ok(output) = Command::new("where")
                 .arg("ollama")
-                .stdout(Stdio::null())
+                .stdout(Stdio::piped())
                 .stderr(Stdio::null())
-                .status()
-                .map(|s| s.success())
-                .unwrap_or(false)
+                .output()
+            {
+                if output.status.success() {
+                    let path_str = String::from_utf8_lossy(&output.stdout);
+                    if let Some(first_line) = path_str.lines().next() {
+                        let path = PathBuf::from(first_line.trim());
+                        if path.exists() {
+                            log::info!("Found Ollama in PATH: {:?}", path);
+                            return Some(path);
+                        }
+                    }
+                }
+            }
+
+            None
         }
 
         #[cfg(not(target_os = "windows"))]
         {
-            Command::new("which")
+            // Check common Unix paths
+            let possible_paths = [
+                "/usr/local/bin/ollama",
+                "/usr/bin/ollama",
+                "/opt/ollama/ollama",
+            ];
+
+            for path_str in &possible_paths {
+                let path = PathBuf::from(path_str);
+                if path.exists() {
+                    return Some(path);
+                }
+            }
+
+            // Check PATH as fallback
+            if let Ok(output) = Command::new("which")
                 .arg("ollama")
-                .stdout(Stdio::null())
+                .stdout(Stdio::piped())
                 .stderr(Stdio::null())
-                .status()
-                .map(|s| s.success())
-                .unwrap_or(false)
+                .output()
+            {
+                if output.status.success() {
+                    let path_str = String::from_utf8_lossy(&output.stdout);
+                    let path = PathBuf::from(path_str.trim());
+                    if path.exists() {
+                        return Some(path);
+                    }
+                }
+            }
+
+            None
         }
     }
 
-    /// Start Ollama server
+    /// Start Ollama server with CORS enabled for browser extension
     pub async fn start(&self) -> Result<(), String> {
         // Check if already running
         if self.is_healthy().await {
@@ -128,18 +196,32 @@ impl OllamaManager {
             return Ok(());
         }
 
-        // Try to start Ollama
-        let child = Command::new("ollama")
-            .arg("serve")
+        // Find Ollama binary
+        let ollama_path = Self::find_ollama_binary()
+            .ok_or_else(|| "Ollama is not installed. Please install it from https://ollama.ai".to_string())?;
+
+        log::info!("Starting Ollama from: {:?}", ollama_path);
+
+        // Build command with CORS enabled for browser extension
+        let mut cmd = Command::new(&ollama_path);
+        cmd.arg("serve")
+            .env("OLLAMA_ORIGINS", "*") // Enable CORS for browser extension
+            .env("OLLAMA_HOST", "127.0.0.1:11434")
             .stdout(Stdio::null())
-            .stderr(Stdio::null())
+            .stderr(Stdio::null());
+
+        // Hide console window on Windows
+        #[cfg(target_os = "windows")]
+        cmd.creation_flags(CREATE_NO_WINDOW);
+
+        let child = cmd
             .spawn()
             .map_err(|e| format!("Failed to start Ollama: {}", e))?;
 
         *self.process.lock().await = Some(child);
 
-        // Wait for Ollama to be ready
-        for i in 0..30 {
+        // Wait for Ollama to be ready (up to 30 seconds)
+        for i in 0..60 {
             sleep(Duration::from_millis(500)).await;
             if self.is_healthy().await {
                 log::info!("Ollama started successfully after {}ms", (i + 1) * 500);
@@ -147,7 +229,7 @@ impl OllamaManager {
             }
         }
 
-        Err("Ollama failed to start within 15 seconds".to_string())
+        Err("Ollama failed to start within 30 seconds".to_string())
     }
 
     /// Stop Ollama server

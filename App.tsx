@@ -3,9 +3,10 @@ import { AnalyzeTab } from './components/AnalyzeTab';
 import { StatsTab } from './components/StatsTab';
 import { AboutTab } from './components/AboutTab';
 import { SetupWizard } from './components/SetupWizard';
+import { FirstRunWizard } from './components/FirstRunWizard';
 import { AgeGroup, UserProgress } from './types';
 import { generateCard } from './services/gamificationService';
-import { isTauri, getOllamaStatus } from './services/localAIService';
+import { isTauri, getSetupStatus } from './services/localAIService';
 import { Search, BarChart2, Info, Settings, X, Shield, Cpu } from 'lucide-react';
 import { AGE_GROUPS } from './constants';
 
@@ -34,39 +35,33 @@ const App: React.FC = () => {
   // Check if setup is needed on mount
   useEffect(() => {
     async function checkSetup() {
-      // Check localStorage first
-      const setupDone = localStorage.getItem('fw_setup_complete');
+      // Load saved persona
       const savedPersona = localStorage.getItem('fw_persona');
-
       if (savedPersona) {
         setAgeGroup(savedPersona as AgeGroup);
       }
 
-      if (setupDone === 'true') {
+      // If not in Tauri, skip setup wizard
+      if (!isTauri()) {
         setSetupComplete(true);
         setCheckingSetup(false);
         return;
       }
 
-      // If in Tauri, check if Ollama is set up
-      if (isTauri()) {
-        try {
-          const status = await getOllamaStatus();
-          if (status.running && status.models_available.length > 0) {
-            // Already set up, skip wizard
-            localStorage.setItem('fw_setup_complete', 'true');
-            setSetupComplete(true);
-          } else {
-            // Need setup
-            setShowSetupWizard(true);
-          }
-        } catch {
-          // Error checking, show wizard
+      // Check setup status from Tauri backend
+      try {
+        const status = await getSetupStatus();
+
+        if (status.first_run_complete && status.ollama_running && status.model_available) {
+          // Already set up
+          setSetupComplete(true);
+        } else {
+          // Need setup - show parent-friendly wizard
           setShowSetupWizard(true);
         }
-      } else {
-        // Browser mode - skip setup wizard
-        setSetupComplete(true);
+      } catch {
+        // Error checking, show wizard
+        setShowSetupWizard(true);
       }
 
       setCheckingSetup(false);
@@ -114,12 +109,8 @@ const App: React.FC = () => {
   // Show setup wizard if needed
   if (showSetupWizard && !setupComplete) {
     return (
-      <SetupWizard
+      <FirstRunWizard
         onComplete={handleSetupComplete}
-        onSkip={() => {
-          setShowSetupWizard(false);
-          setSetupComplete(true);
-        }}
       />
     );
   }

@@ -407,6 +407,7 @@ pub fn run() {
             // Handle window close - minimize to tray instead of quitting
             let main_window = app.get_webview_window("main").unwrap();
             let settings_for_close = state.settings.clone();
+            let window_for_close = main_window.clone();
 
             main_window.on_window_event(move |event| {
                 if let WindowEvent::CloseRequested { api, .. } = event {
@@ -416,9 +417,12 @@ pub fn run() {
 
                     if settings.minimize_to_tray {
                         api.prevent_close();
-                        // Hide the window instead of closing
-                        // Note: window.hide() would need the window reference
-                        log::info!("Window close requested, minimizing to tray");
+                        // Hide the window to system tray
+                        if let Err(e) = window_for_close.hide() {
+                            log::error!("Failed to hide window: {}", e);
+                        } else {
+                            log::info!("Window minimized to tray");
+                        }
                     }
                 }
             });
